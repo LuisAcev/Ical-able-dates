@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install python-dotenv fastapi uvicorn)",
+      "Bash(python -c \":*)",
+      "Bash(python -c \"import py_compile; py_compile.compile\\(''allin.py'', doraise=True\\); print\\(''allin.py OK''\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\(''ical_gen.py'', doraise=True\\); print\\(''ical_gen.py OK''\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\(''ical_server.py'', doraise=True\\); print\\(''ical_server.py OK''\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\(''listings.py'', doraise=True\\); print\\(''listings.py OK''\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\(''config.py'', doraise=True\\); print\\(''config.py OK''\\)\")",
+      "Bash(pip install -r requirements.txt)",
+      "WebSearch",
+      "Bash(find /c/desarrollo/AVI -type d -not -path */node_modules* -not -path */__pycache__*)",
+      "Bash(python -c \"from storage import build_initial_listings; data = build_initial_listings\\(\\); print\\(f''OK: {len\\(data\\)} listings cargados''\\)\")",
+      "Bash(npm install:*)",
+      "Bash(python ical_server.py)",
+      "Bash(curl -s http://localhost:8085/health)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill //PID 55992 //F)"
+    ],
+    "additionalDirectories": [
+      "C:\\desarrollo\\AVI"
+    ]
+  }
+}
