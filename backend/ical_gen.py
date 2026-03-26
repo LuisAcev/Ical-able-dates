@@ -9,10 +9,13 @@ Este modulo invierte las fechas disponibles para generar
 eventos con los periodos NO disponibles.
 """
 
+import logging
 import os
 import tempfile
 from datetime import datetime, timedelta, timezone
 from config import ICS_OUTPUT_DIR
+
+logger = logging.getLogger(__name__)
 
 
 def compute_blocked_ranges(available_dates, range_start, range_end):
@@ -140,5 +143,5 @@ def generate_ics_for_listing(listing_id, available_dates, range_start, range_end
         raise
 
     event_count = len(blocked_ranges)
-    print(f"  [iCal] {listing_id}.ics generado ({event_count} bloqueos)")
+    logger.info("%s.ics generado (%d bloqueos)", listing_id, event_count)
     return target_path

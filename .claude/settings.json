@@ -16,7 +16,26 @@
       "Bash(python ical_server.py)",
       "Bash(curl -s http://localhost:8085/health)",
       "Bash(netstat -ano)",
-      "Bash(taskkill //PID 55992 //F)"
+      "Bash(taskkill //PID 55992 //F)",
+      "Bash(curl -s -X POST \"https://api.hostaway.com/v1/accessTokens\" -H \"Content-Type: application/x-www-form-urlencoded\" -d \"grant_type=client_credentials&client_id=50434&client_secret=1ee156b6327e7613ceeab9beeb68e827a4c9d8e32e4502d2a18e31d71d56b5b3&scope=general\")",
+      "Bash(TOKEN=\"eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI1MDQzNCIsImp0aSI6IjY2ZDZjYjRkN2NmMDliNmRhOWE4M2MzZTVhYmNlYWQ5Y2RlMWYyNjEzYzY4OTk2MjY2M2FiYTRkMDZjZmFlNGExYzZkYWI3ODYyNmIxYTAwIiwiaWF0IjoxNzczNzc5MTI0LjI4MzY2MSwibmJmIjoxNzczNzc5MTI0LjI4MzY2MywiZXhwIjoyMDg5Mzk4MzI0LjI4MzY2Nywic3ViIjoiIiwic2NvcGVzIjpbImdlbmVyYWwiXSwic2VjcmV0SWQiOjY2NDkxfQ.RpRzBpUMyfyXXCvv-k1XQt63jbqX8aITn2L1mmEivt8z64mFAbdoomz4OLuhvRQboWE5eU2fc_4na4IqiOOAAxYE2Lh7q5xtpXOBl-ZnUKBJPxdxL5LtwyWa5PuvBnfHdvdx_xrCoCio8b6x8eOwHOevdAz50BYzmX6QFsGFTa3s8QWs8WpiTujshinvYc8MzGFu_aGusyg-l3qFcMHsF7VVyIuKRKQzcm5mQb7gO6Gk8OWlqFqumXWpmwc44Es8569E9rnoyX2hH7W5Hi8qjInHjDfZbFAOr4i2B-y7FY9X9cBrrcg0evPDDkE7FVXM0T0uKjn-DpF9wRF2vz9qmg\")",
+      "Bash(curl -s \"https://api.hostaway.com/v1/listings?limit=100\" -H \"Authorization: Bearer $TOKEN\")",
+      "Bash(curl -s \"https://api.hostaway.com/v1/listings/401039\" -H \"Authorization: Bearer $TOKEN\")",
+      "Bash(pip show:*)",
+      "Bash(grep -n \"import\" *.py)",
+      "Bash(python3 -m pylint --disable=all --enable=unused-import --errors-only allin.py)",
+      "Bash(grep -n \"threading\\\\|Lock\\\\|_lock\" *.py)",
+      "Bash(grep -n \"global \" *.py)",
+      "Bash(grep -n \"input\\(\\)\" *.py)",
+      "Bash(grep -n \"os\\\\.makedirs\" *.py)",
+      "Bash(grep -n \"pass$\\\\|continue$\" allin.py)",
+      "Bash(grep -n \"import sys\" *.py)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8085/ical/1357305285827607376.ics)",
+      "Bash(curl -sI \"https://chevy-attachment-south-messenger.trycloudflare.com/ical/1357305285827607376.ics\")",
+      "Bash(curl -s \"https://chevy-attachment-south-messenger.trycloudflare.com/ical/1357305285827607376.ics\")",
+      "Bash(curl -s -D - \"https://chevy-attachment-south-messenger.trycloudflare.com/ical/1357305285827607376.ics\")",
+      "Bash(curl -s \"https://chevy-attachment-south-messenger.trycloudflare.com/ical/1333392495650050673.ics\")",
+      "Bash(python3 -c \":*)"
     ],
     "additionalDirectories": [
       "C:\\desarrollo\\AVI"

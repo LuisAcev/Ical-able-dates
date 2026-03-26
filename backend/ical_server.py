@@ -11,8 +11,12 @@ Uso:
     python ical_server.py
 """
 
+import logging
 import os
 import threading
+
+logger = logging.getLogger(__name__)
+from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse, HTMLResponse
@@ -20,18 +24,28 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
 
-from config import ICS_OUTPUT_DIR, ICAL_SERVER_HOST, ICAL_SERVER_PORT
+from config import ICS_OUTPUT_DIR, ICAL_SERVER_HOST, ICAL_SERVER_PORT, CORS_ORIGINS, ICAL_BASE_URL
 from storage import (
-    load_listings, upsert_listing, update_timestamp,
-    build_initial_listings, get_listing,
+    load_listings, upsert_listing, update_timestamp, delete_listing,
+    build_initial_listings, get_listing, ensure_ical_enabled_field,
+    get_setting, save_setting,
 )
 
-app = FastAPI(title="AVI iCalendar Server")
+
+@asynccontextmanager
+async def lifespan(_app):
+    """Inicializa la data de listings si no existe."""
+    build_initial_listings()
+    ensure_ical_enabled_field()
+    yield
+
+
+app = FastAPI(title="AVI iCalendar Server", lifespan=lifespan)
 
 # CORS para el frontend (Vite dev server)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -60,16 +74,21 @@ class ListingCreate(BaseModel):
     bedrooms: str = "0"
     sync_mode: str = "primary"
 
+class ListingManualCreate(BaseModel):
+    """Creacion manual de listing con todos los campos requeridos."""
+    listing_id: str
+    title: str
+    resort_codes: list[str]
+    bedrooms: str
 
-# ================== STARTUP ==================
+class IcalToggle(BaseModel):
+    ical_enabled: bool
 
-@app.on_event("startup")
-def startup():
-    """Inicializa la data de listings si no existe."""
-    build_initial_listings()
+class IcalBaseUrl(BaseModel):
+    base_url: str
 
 
-# ================== ICAL ENDPOINTS (existentes) ==================
+# ================== ICAL ENDPOINTS ==================
 
 @app.get("/", response_class=HTMLResponse)
 def list_calendars():
@@ -121,18 +140,37 @@ def health_check():
 
 # ================== API ENDPOINTS ==================
 
+@app.get("/api/settings/ical-base-url")
+def api_get_ical_base_url():
+    """Retorna la URL base actual para iCal."""
+    base_url = get_setting("ical_base_url", ICAL_BASE_URL)
+    return {"base_url": base_url}
+
+
+@app.put("/api/settings/ical-base-url")
+def api_set_ical_base_url(data: IcalBaseUrl):
+    """Cambia la URL base para iCal y la persiste en disco."""
+    base = data.base_url.strip().rstrip("/")
+    if base and not base.startswith(("http://", "https://")):
+        raise HTTPException(status_code=422, detail="La URL debe comenzar con http:// o https://")
+    save_setting("ical_base_url", base)
+    return {"message": "URL base actualizada", "base_url": base}
+
+
 @app.get("/api/listings")
 def api_get_listings():
     """Retorna todos los listings con sus detalles y timestamps."""
+    base_url = get_setting("ical_base_url", ICAL_BASE_URL)
     listings = load_listings()
-    # Agregar info de si existe el .ics
     for l in listings:
         ics_path = Path(ICS_OUTPUT_DIR) / f"{l['listing_id']}.ics"
         l["has_ical"] = ics_path.exists()
+        l["ical_url"] = f"{base_url}/ical/{l['listing_id']}.ics" if base_url else ""
+        l.pop("IcalURL", None)
     return {"listings": listings}
 
 
-@app.post("/api/listings")
+@app.post("/api/listings", status_code=201)
 def api_register_listing(data: ListingRegister):
     """
     Registra un listing nuevo. Solo recibe el ID de Airbnb.
@@ -150,10 +188,10 @@ def api_register_listing(data: ListingRegister):
     existing = get_listing(data.listing_id)
     if existing:
         # Actualizar datos de Airbnb sin perder resort_codes, sync_mode, etc.
-        existing["title"] = details.get("title", "") or existing.get("title", "")
-        existing["bedrooms"] = str(details.get("bedrooms", 0)) or existing.get("bedrooms", "0")
-        existing["guests"] = details.get("guests", 0) or existing.get("guests", 0)
-        existing["price_per_night"] = details.get("price_per_night", 0) or existing.get("price_per_night", 0)
+        existing["title"] = details.get("title") or existing.get("title", "")
+        existing["bedrooms"] = str(details["bedrooms"]) if details.get("bedrooms") is not None else existing.get("bedrooms", "0")
+        existing["guests"] = details["guests"] if details.get("guests") is not None else existing.get("guests", 0)
+        existing["price_per_night"] = details["price_per_night"] if details.get("price_per_night") is not None else existing.get("price_per_night", 0)
         upsert_listing(existing)
         return {"message": "Listing actualizado con datos de Airbnb", "listing": existing}
 
@@ -171,8 +209,34 @@ def api_register_listing(data: ListingRegister):
     return {"message": "Listing registrado", "listing": listing}
 
 
+@app.post("/api/listings/manual", status_code=201)
+def api_create_listing_manual(data: ListingManualCreate):
+    """Crea un listing manualmente con los datos proporcionados."""
+    listing_id = str(data.listing_id).strip()
+    if not listing_id:
+        raise HTTPException(status_code=422, detail="listing_id es requerido")
+
+    if get_listing(listing_id):
+        raise HTTPException(status_code=409, detail=f"El listing {listing_id} ya existe")
+
+    if not data.resort_codes:
+        raise HTTPException(status_code=422, detail="Debe incluir al menos un resort code")
+
+    listing = {
+        "listing_id": listing_id,
+        "title": data.title.strip(),
+        "resort_codes": [code.strip().upper() for code in data.resort_codes],
+        "bedrooms": data.bedrooms,
+        "sync_mode": "primary",
+        "last_updated": None,
+        "ical_enabled": True,
+    }
+    upsert_listing(listing)
+    return {"message": "Listing creado", "listing": listing}
+
+
 @app.put("/api/listings/{listing_id}")
-def api_update_listing_data(listing_id: int, data: ListingCreate):
+def api_update_listing_data(listing_id: str, data: ListingCreate):
     """Actualiza los datos de un listing (titulo, resort_codes, etc)."""
     existing = get_listing(listing_id)
     if not existing:
@@ -186,9 +250,48 @@ def api_update_listing_data(listing_id: int, data: ListingCreate):
     return {"message": "Listing actualizado", "listing": existing}
 
 
+@app.delete("/api/listings/{listing_id}")
+def api_delete_listing(listing_id: str):
+    """Elimina un listing del sistema."""
+    existing = get_listing(listing_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Listing no encontrado")
+
+    deleted = delete_listing(listing_id)
+    if not deleted:
+        raise HTTPException(status_code=500, detail="Error al eliminar el listing")
+
+    # Eliminar el archivo .ics si existe
+    ics_path = Path(ICS_OUTPUT_DIR) / f"{listing_id}.ics"
+    if ics_path.exists():
+        try:
+            ics_path.unlink()
+        except OSError:
+            logger.warning("No se pudo eliminar %s.ics", listing_id)
+
+    return {"message": f"Listing {listing_id} eliminado"}
+
+
+@app.patch("/api/listings/{listing_id}/toggle-ical")
+def api_toggle_ical(listing_id: str, data: IcalToggle):
+    """Activa o desactiva la actualizacion iCal de un listing."""
+    existing = get_listing(listing_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Listing no encontrado")
+
+    existing["ical_enabled"] = data.ical_enabled
+    upsert_listing(existing)
+    return {"message": "Estado iCal actualizado", "listing": existing}
+
+
+def _set_status(**kwargs):
+    """Actualiza _update_status de forma thread-safe."""
+    with _update_lock:
+        _update_status.update(kwargs)
+
+
 def _run_update_single(listing_id):
     """Background task: actualiza iCal de un listing."""
-    global _update_status
     with _update_lock:
         if _update_status["updating"]:
             return
@@ -200,16 +303,15 @@ def _run_update_single(listing_id):
     try:
         from updater import update_single_listing
         result = update_single_listing(listing_id)
-        _update_status["error"] = result.get("error")
+        _set_status(error=result.get("error"))
     except Exception as e:
-        _update_status["error"] = str(e)
+        _set_status(error=str(e))
     finally:
-        _update_status.update(updating=False, current_listing=None, progress=1)
+        _set_status(updating=False, current_listing=None, progress=1)
 
 
 def _run_update_all():
     """Background task: actualiza iCal de todos los listings."""
-    global _update_status
     with _update_lock:
         if _update_status["updating"]:
             return
@@ -223,26 +325,32 @@ def _run_update_all():
         from updater import update_single_listing
         for i, listing in enumerate(listings):
             lid = listing["listing_id"]
-            _update_status.update(current_listing=lid, progress=i + 1)
+            _set_status(current_listing=lid, progress=i + 1)
+            if not listing.get("ical_enabled", True):
+                continue
             try:
                 update_single_listing(lid)
             except Exception as e:
-                print(f"  [Server] Error updating {lid}: {e}")
+                logger.error("Error updating %s: %s", lid, e)
     except Exception as e:
-        _update_status["error"] = str(e)
+        _set_status(error=str(e))
     finally:
-        _update_status.update(updating=False, current_listing=None)
+        _set_status(updating=False, current_listing=None)
 
 
 @app.post("/api/listings/{listing_id}/update", status_code=202)
-def api_update_single(listing_id: int, background_tasks: BackgroundTasks):
+def api_update_single(listing_id: str, background_tasks: BackgroundTasks):
     """Lanza actualizacion de iCal de un listing en background."""
-    if _update_status["updating"]:
-        raise HTTPException(status_code=409, detail="Ya hay una actualizacion en progreso")
+    with _update_lock:
+        if _update_status["updating"]:
+            raise HTTPException(status_code=409, detail="Ya hay una actualizacion en progreso")
 
     existing = get_listing(listing_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Listing no encontrado")
+
+    if not existing.get("ical_enabled", True):
+        raise HTTPException(status_code=403, detail="La actualizacion iCal esta deshabilitada para este listing")
 
     background_tasks.add_task(_run_update_single, listing_id)
     return {"message": f"Actualizacion de {listing_id} iniciada"}
@@ -251,8 +359,9 @@ def api_update_single(listing_id: int, background_tasks: BackgroundTasks):
 @app.post("/api/update-all", status_code=202)
 def api_update_all(background_tasks: BackgroundTasks):
     """Lanza actualizacion de iCal de TODOS los listings en background."""
-    if _update_status["updating"]:
-        raise HTTPException(status_code=409, detail="Ya hay una actualizacion en progreso")
+    with _update_lock:
+        if _update_status["updating"]:
+            raise HTTPException(status_code=409, detail="Ya hay una actualizacion en progreso")
 
     background_tasks.add_task(_run_update_all)
     return {"message": "Actualizacion masiva iniciada"}
@@ -261,12 +370,18 @@ def api_update_all(background_tasks: BackgroundTasks):
 @app.get("/api/status")
 def api_status():
     """Estado actual de actualizacion."""
-    return _update_status
+    with _update_lock:
+        return dict(_update_status)
 
 
 # ================== MAIN ==================
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
     os.makedirs(ICS_OUTPUT_DIR, exist_ok=True)
     uvicorn.run(
         "ical_server:app",

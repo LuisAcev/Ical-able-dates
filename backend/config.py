@@ -20,10 +20,6 @@ def _env(key, default=None):
 INTERVAL_USERNAME = _env("INTERVAL_USERNAME")
 INTERVAL_PASSWORD = _env("INTERVAL_PASSWORD")
 
-# ================== HOSTAWAY API (opcional, legacy) ==================
-HOSTAWAY_ACCOUNT_ID = _env("HOSTAWAY_ACCOUNT_ID", "")
-HOSTAWAY_API_SECRET = _env("HOSTAWAY_API_SECRET", "")
-
 # ================== DATES ==================
 DATE_RANGE_DAYS = int(_env("DATE_RANGE_DAYS", "365"))
 DATE_RANGE_START = datetime.today()
@@ -43,10 +39,11 @@ DATE_KEY_DELAY = float(_env("DATE_KEY_DELAY", "0.02"))
 DATE_INPUT_RETRIES = int(_env("DATE_INPUT_RETRIES", "2"))
 
 # ================== AIRBNB ==================
-AIRBNB_EMAIL = _env("AIRBNB_EMAIL", "")
-AIRBNB_PASSWORD = _env("AIRBNB_PASSWORD", "")
+AIRBNB_PROFILE_DIR = _env("AIRBNB_PROFILE_DIR", "")
 
 # ================== ICAL SERVER ==================
 ICAL_SERVER_HOST = _env("ICAL_SERVER_HOST", "0.0.0.0")
 ICAL_SERVER_PORT = int(_env("ICAL_SERVER_PORT", "8085"))
 ICS_OUTPUT_DIR = Path(__file__).parent / _env("ICS_OUTPUT_DIR", "ics_files")
+ICAL_BASE_URL = _env("ICAL_BASE_URL", "")
+CORS_ORIGINS = [o.strip() for o in _env("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")]

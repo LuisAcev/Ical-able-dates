@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 export const listingsApi = createApi({
   reducerPath: 'listingsApi',
   baseQuery: fetchBaseQuery({ baseUrl: '/api' }),
-  tagTypes: ['Listings', 'Status'],
+  tagTypes: ['Listings', 'Status', 'Settings'],
   endpoints: (builder) => ({
 
     getListings: builder.query({
@@ -18,6 +18,15 @@ export const listingsApi = createApi({
         method: 'POST',
         body: { listing_id: String(listingId) },
       }),
+      invalidatesTags: ['Listings', 'Status'],
+    }),
+
+    createListingManual: builder.mutation({
+      query: (body) => ({
+        url: '/listings/manual',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: ['Listings'],
     }),
 
@@ -26,6 +35,23 @@ export const listingsApi = createApi({
         url: `/listings/${listingId}`,
         method: 'PUT',
         body,
+      }),
+      invalidatesTags: ['Listings'],
+    }),
+
+    deleteListing: builder.mutation({
+      query: (listingId) => ({
+        url: `/listings/${listingId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Listings'],
+    }),
+
+    toggleIcal: builder.mutation({
+      query: ({ listingId, ical_enabled }) => ({
+        url: `/listings/${listingId}/toggle-ical`,
+        method: 'PATCH',
+        body: { ical_enabled },
       }),
       invalidatesTags: ['Listings'],
     }),
@@ -51,14 +77,33 @@ export const listingsApi = createApi({
       providesTags: ['Status'],
     }),
 
+    getIcalBaseUrl: builder.query({
+      query: () => '/settings/ical-base-url',
+      providesTags: ['Settings'],
+    }),
+
+    setIcalBaseUrl: builder.mutation({
+      query: (base_url) => ({
+        url: '/settings/ical-base-url',
+        method: 'PUT',
+        body: { base_url },
+      }),
+      invalidatesTags: ['Settings', 'Listings'],
+    }),
+
   }),
 });
 
 export const {
   useGetListingsQuery,
   useRegisterListingMutation,
-  useUpdateListingDataMutation,
+  useToggleIcalMutation,
   useUpdateListingIcalMutation,
   useUpdateAllListingsMutation,
   useGetStatusQuery,
+  useGetIcalBaseUrlQuery,
+  useSetIcalBaseUrlMutation,
+  useCreateListingManualMutation,
+  useDeleteListingMutation,
+  useUpdateListingDataMutation,
 } = listingsApi;

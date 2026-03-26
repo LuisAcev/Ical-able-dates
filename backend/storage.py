@@ -8,11 +8,14 @@ Persistencia JSON para listings y timestamps de actualizacion.
 import json
 import os
 import tempfile
+import threading
 from pathlib import Path
 from datetime import datetime, timezone
 
 DATA_DIR = Path(__file__).parent / "data"
 LISTINGS_FILE = DATA_DIR / "listings_data.json"
+SETTINGS_FILE = DATA_DIR / "settings.json"
+_storage_lock = threading.Lock()
 
 
 def _ensure_dir():
@@ -64,29 +67,80 @@ def get_listing(listing_id):
 
 
 def upsert_listing(listing):
-    """Agrega o actualiza un listing."""
-    listings = load_listings()
-    listing_id = str(listing["listing_id"])
-    for i, l in enumerate(listings):
-        if str(l["listing_id"]) == listing_id:
-            listings[i] = listing
+    """Agrega o actualiza un listing (thread-safe)."""
+    listing["listing_id"] = str(listing["listing_id"])
+    with _storage_lock:
+        listings = load_listings()
+        listing_id = listing["listing_id"]
+        for i, l in enumerate(listings):
+            if str(l["listing_id"]) == listing_id:
+                listings[i] = listing
+                save_listings(listings)
+                return
+        listings.append(listing)
+        save_listings(listings)
+
+
+def delete_listing(listing_id):
+    """Elimina un listing por ID (thread-safe). Retorna True si se elimino."""
+    listing_id = str(listing_id)
+    with _storage_lock:
+        listings = load_listings()
+        original_len = len(listings)
+        listings = [l for l in listings if str(l["listing_id"]) != listing_id]
+        if len(listings) < original_len:
             save_listings(listings)
-            return
-    listings.append(listing)
-    save_listings(listings)
+            return True
+        return False
 
 
 def update_timestamp(listing_id):
-    """Actualiza el timestamp de ultima actualizacion de un listing."""
-    listings = load_listings()
-    listing_id = str(listing_id)
-    now = datetime.now(timezone.utc).isoformat()
-    for l in listings:
-        if str(l["listing_id"]) == listing_id:
-            l["last_updated"] = now
+    """Actualiza el timestamp de ultima actualizacion de un listing (thread-safe)."""
+    with _storage_lock:
+        listings = load_listings()
+        listing_id = str(listing_id)
+        now = datetime.now(timezone.utc).isoformat()
+        for l in listings:
+            if str(l["listing_id"]) == listing_id:
+                l["last_updated"] = now
+                save_listings(listings)
+                return now
+        return None
+
+
+# ================== SETTINGS ==================
+
+def load_settings():
+    """Retorna el dict de settings guardado."""
+    return _read_json(SETTINGS_FILE, {})
+
+
+def save_setting(key, value):
+    """Guarda un setting individual (thread-safe)."""
+    with _storage_lock:
+        settings = load_settings()
+        settings[key] = value
+        _atomic_write(SETTINGS_FILE, settings)
+
+
+def get_setting(key, default=None):
+    """Obtiene un setting por key."""
+    return load_settings().get(key, default)
+
+
+# ================== MIGRATIONS ==================
+
+def ensure_ical_enabled_field():
+    """Agrega ical_enabled=True a listings existentes que no tengan el campo."""
+    with _storage_lock:
+        listings = load_listings()
+        changed = False
+        for l in listings:
+            if "ical_enabled" not in l:
+                l["ical_enabled"] = True
+                changed = True
+        if changed:
             save_listings(listings)
-            return now
-    return None
 
 
 def build_initial_listings():
@@ -104,7 +158,7 @@ def build_initial_listings():
 
     seen = {}
     for entry in PRIMARY_LISTINGS:
-        lid = entry["listing_id"]
+        lid = str(entry["listing_id"])
         if lid not in seen:
             seen[lid] = {
                 "listing_id": lid,
@@ -113,13 +167,14 @@ def build_initial_listings():
                 "title": "",
                 "sync_mode": "primary",
                 "last_updated": None,
+                "ical_enabled": True,
             }
         else:
             if entry["resort_code"] not in seen[lid]["resort_codes"]:
                 seen[lid]["resort_codes"].append(entry["resort_code"])
 
     for entry in AVAILABILITY_ONLY_LISTINGS:
-        lid = entry["listing_id"]
+        lid = str(entry["listing_id"])
         if lid not in seen:
             seen[lid] = {
                 "listing_id": lid,
@@ -128,6 +183,7 @@ def build_initial_listings():
                 "title": "",
                 "sync_mode": "secondary",
                 "last_updated": None,
+                "ical_enabled": True,
             }
         else:
             if entry["resort_code"] not in seen[lid]["resort_codes"]:

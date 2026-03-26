@@ -159,9 +159,4 @@ MANUAL_EXTRA_AVAIL = {
     400359: [
         ("2026-04-03", "2026-04-10"),
     ],
-    # TODO: 401042 no existe en PRIMARY_LISTINGS ni AVAILABILITY_ONLY_LISTINGS.
-    #       Este override nunca se aplica. Verificar si debe agregarse a alguna lista.
-    401042: [
-        ("2026-04-04", "2026-04-11"),
-    ],
 }

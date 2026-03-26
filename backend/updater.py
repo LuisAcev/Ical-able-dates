@@ -8,76 +8,68 @@ Reutiliza collect_available_dates y apply_manual_extra_availability de allin.py
 y generate_ics_for_listing de ical_gen.py.
 """
 
-import traceback
+import logging
 from datetime import datetime, timezone
 
+logger = logging.getLogger(__name__)
+
 from config import DATE_RANGE_START, DATE_RANGE_END
-from listings import (
-    PRIMARY_LISTINGS, PRIMARY_BEDROOM_FILTER,
-    AVAILABILITY_ONLY_LISTINGS, SECONDARY_BEDROOM_FILTER,
-    MANUAL_EXTRA_AVAIL,
-)
 from allin import collect_available_dates, apply_manual_extra_availability
 from ical_gen import generate_ics_for_listing
-from storage import load_listings, update_timestamp
-
-
-def _get_listing_config(listing_id):
-    """
-    Busca la configuracion de un listing en PRIMARY y SECONDARY lists.
-    Retorna lista de (resort_code, bedroom_filter_dict) para este listing.
-    """
-    lid = int(listing_id)
-    entries = []
-
-    for entry in PRIMARY_LISTINGS:
-        if entry["listing_id"] == lid:
-            entries.append((entry["resort_code"], PRIMARY_BEDROOM_FILTER))
-
-    for entry in AVAILABILITY_ONLY_LISTINGS:
-        if entry["listing_id"] == lid:
-            entries.append((entry["resort_code"], SECONDARY_BEDROOM_FILTER))
-
-    return entries
+from storage import load_listings, get_listing, update_timestamp
 
 
 def update_single_listing(listing_id):
     """
     Actualiza el iCal de un listing individual.
+    Lee la configuracion (resort_codes, bedrooms) del JSON de storage.
 
     Returns:
         dict con resultado: {listing_id, dates_found, updated_at, error}
     """
-    lid = int(listing_id)
-    entries = _get_listing_config(lid)
+    listing_id = str(listing_id)
+    listing = get_listing(listing_id)
 
-    if not entries:
+    if not listing:
         return {
-            "listing_id": lid,
+            "listing_id": listing_id,
             "dates_found": 0,
             "updated_at": None,
-            "error": f"Listing {lid} no encontrado en configuracion",
+            "error": f"Listing {listing_id} no encontrado en storage",
         }
+
+    resort_codes = listing.get("resort_codes", [])
+    bedrooms = listing.get("bedrooms", "0")
+
+    if not resort_codes:
+        return {
+            "listing_id": listing_id,
+            "dates_found": 0,
+            "updated_at": None,
+            "error": f"Listing {listing_id} no tiene resort_codes configurados",
+        }
+
+    # Construir bedroom_filter compatible con el scraper
+    bedroom_filter = {listing_id: bedrooms}
 
     all_available = set()
 
-    for resort_code, bedroom_filter in entries:
+    for resort_code in resort_codes:
         try:
-            print(f"\n  [Updater] Scraping {resort_code} para listing {lid}...")
-            available = collect_available_dates(resort_code, lid, bedroom_filter)
-            available = apply_manual_extra_availability(lid, available)
+            logger.info("Scraping %s para listing %s...", resort_code, listing_id)
+            available = collect_available_dates(resort_code, listing_id, bedroom_filter)
+            available = apply_manual_extra_availability(listing_id, available)
             all_available.update(available)
-            print(f"  [Updater] {resort_code}: {len(available)} dias disponibles")
+            logger.info("%s: %d dias disponibles", resort_code, len(available))
         except Exception as e:
-            print(f"  [Updater] Error scraping {resort_code}: {e}")
-            traceback.print_exc()
+            logger.exception("Error scraping %s: %s", resort_code, e)
 
     available_sorted = sorted(all_available)
-    generate_ics_for_listing(lid, available_sorted, DATE_RANGE_START, DATE_RANGE_END)
-    ts = update_timestamp(lid)
+    generate_ics_for_listing(listing_id, available_sorted, DATE_RANGE_START, DATE_RANGE_END)
+    ts = update_timestamp(listing_id)
 
     return {
-        "listing_id": lid,
+        "listing_id": listing_id,
         "dates_found": len(available_sorted),
         "updated_at": ts,
         "error": None,

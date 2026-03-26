@@ -5,9 +5,10 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
-import CircularProgress from '@mui/material/CircularProgress';
-import Alert from '@mui/material/Alert';
+import { ListingCircularProgress } from '../ListingCircularProgress/ListingCircularProgress';
+import { AlertInline } from '../AlertInline/AlertInline';
 import { useRegisterListingMutation } from '../../store/api/api';
+import { t } from '../../i18n';
 
 export const RegisterListing = () => {
   const [open, setOpen] = useState(false);
@@ -27,8 +28,10 @@ export const RegisterListing = () => {
     reset();
   };
 
+  const isValidId = (id) => /^\d+$/.test(id.trim());
+
   const handleSubmit = async () => {
-    if (!listingId.trim()) return;
+    if (!isValidId(listingId)) return;
     const result = await registerListing(listingId.trim());
     if (!result.error) handleClose();
   };
@@ -36,16 +39,16 @@ export const RegisterListing = () => {
   return (
     <>
       <Button variant="contained" onClick={handleOpen} sx={{ mb: 2 }}>
-        Registrar Listing
+        {t.registerListing.openButton}
       </Button>
 
       <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
-        <DialogTitle>Registrar nuevo Listing</DialogTitle>
+        <DialogTitle>{t.registerListing.dialogTitle}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
-            label="Airbnb Listing ID"
-            placeholder="Ej: 1142004991848222683"
+            label={t.registerListing.inputLabel}
+            placeholder={t.registerListing.inputPlaceholder}
             value={listingId}
             onChange={(e) => setListingId(e.target.value)}
             fullWidth
@@ -54,22 +57,24 @@ export const RegisterListing = () => {
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
           />
           {error && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {error.data?.detail || 'Error al registrar'}
-            </Alert>
+            <AlertInline
+              severity="error"
+              message={error.data?.detail || t.registerListing.errorFallback}
+              sx={{ mt: 2 }}
+            />
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose} disabled={isLoading}>
-            Cancelar
+            {t.registerListing.cancelButton}
           </Button>
           <Button
             variant="contained"
             onClick={handleSubmit}
-            disabled={isLoading || !listingId.trim()}
-            startIcon={isLoading ? <CircularProgress size={16} color="inherit" /> : null}
+            disabled={isLoading || !isValidId(listingId)}
+            startIcon={isLoading ? <ListingCircularProgress size={16} color="inherit" /> : null}
           >
-            {isLoading ? 'Obteniendo datos...' : 'Registrar'}
+            {isLoading ? t.registerListing.submitting : t.registerListing.submitButton}
           </Button>
         </DialogActions>
       </Dialog>

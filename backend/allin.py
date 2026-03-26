@@ -2,31 +2,32 @@
 # -*- coding: utf-8 -*-
 
 # interval_all.py
-# Scraper de disponibilidad Interval World -> Hostaway + generacion iCalendar (.ics)
+# Scraper de disponibilidad Interval World -> generacion iCalendar (.ics)
 #
-# 1) LISTA PRINCIPAL: sincroniza todo el anio (bloquea / abre) usando Interval.
-# 2) LISTA SECUNDARIA: SOLO abre fechas disponibles (no bloquea nada).
-# 3) Genera archivos .ics por listing para sincronizacion con Airbnb.
+# 1) LISTA PRINCIPAL: busca disponibilidad completa en Interval.
+# 2) LISTA SECUNDARIA: busca disponibilidad adicional.
+# 3) Genera archivos .ics por listing para sincronizacion con Airbnb via iCal import.
 #
 # Configuracion: .env | Listings: listings.py | iCal: ical_gen.py
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import TimeoutException
 
-import requests
 from datetime import datetime, timedelta
-import time, re, traceback
+import logging
+import time, re
+
+logger = logging.getLogger(__name__)
 
 from config import (
     INTERVAL_USERNAME, INTERVAL_PASSWORD,
-    HOSTAWAY_ACCOUNT_ID, HOSTAWAY_API_SECRET,
     DATE_RANGE_START, DATE_RANGE_END,
     SPEED_FACTOR, VACATION_EXCHANGE_TIMEOUT, VACATION_EXCHANGE_PAUSE,
     MORE_DATES_PAUSE, MAX_MORE_DATES_CLICKS,
@@ -37,13 +38,11 @@ from ical_gen import generate_ics_for_listing
 from listings import (
     PRIMARY_LISTINGS, PRIMARY_BEDROOM_FILTER,
     SECONDARY_BEDROOM_FILTER, AVAILABILITY_ONLY_LISTINGS,
-    ALL_UNIT_COUNTS, MANUAL_EXTRA_AVAIL,
+    MANUAL_EXTRA_AVAIL,
 )
 
 USERNAME = INTERVAL_USERNAME
 PASSWORD = INTERVAL_PASSWORD
-ACCOUNT_ID = HOSTAWAY_ACCOUNT_ID
-API_SECRET = HOSTAWAY_API_SECRET
 
 # ========= ORDEN ESPECIAL: primero 0 cuartos, luego 2 cuartos, luego resto =========
 def sort_primary_listings_by_bedrooms(listings):
@@ -91,7 +90,7 @@ def apply_manual_extra_availability(listing_id, available_dates):
 
     out = sorted(dates_set)
     added = len(out) - before
-    print(f"📝 Manual extra availability for {listing_id}: +{added} días manuales.")
+    logger.info("Manual extra availability for %s: +%d dias manuales.", listing_id, added)
     return out
 
 # Speed knobs cargados desde config.py via .env
@@ -99,19 +98,6 @@ def apply_manual_extra_availability(listing_id, available_dates):
 # ========== Selenium helpers ==========
 def js_click(driver, el):
     driver.execute_script("arguments[0].click();", el)
-
-def get_access_token():
-    url = "https://api.hostaway.com/v1/accessTokens"
-    data = {
-        "grant_type": "client_credentials",
-        "client_id": ACCOUNT_ID,
-        "client_secret": API_SECRET,
-        "scope": "general"
-    }
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    response = requests.post(url, data=data, headers=headers)
-    response.raise_for_status()
-    return response.json()["access_token"]
 
 def _type_slow(el, text):
     for ch in text:
@@ -152,7 +138,7 @@ def set_date_field(driver, field_id, date_str, fast=False):
 
     current = (el.get_attribute("value") or "").strip()
     if current == date_str:
-        print(f"{field_id}: ya tenía {date_str}, se deja igual.")
+        logger.debug("%s: ya tenia %s, se deja igual.", field_id, date_str)
         return
 
     if fast:
@@ -539,129 +525,8 @@ def wait_results_or_timeout(driver):
         time.sleep(0.8 * SPEED_FACTOR)
         return True
     except TimeoutException:
-        print("⏳ No results appeared — treating as NO AVAILABILITY for this period.")
+        logger.info("No results appeared - treating as NO AVAILABILITY for this period.")
         return False
-
-# ---------- Hostaway: FULL SYNC ----------
-def update_calendar_full(token, listing_id, available_dates):
-    from itertools import groupby
-    from operator import itemgetter
-
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    url = f"https://api.hostaway.com/v1/listings/{listing_id}/calendar"
-
-    all_dates = [
-        (DATE_RANGE_START + timedelta(days=i)).strftime("%Y-%m-%d")
-        for i in range((DATE_RANGE_END - DATE_RANGE_START).days + 1)
-    ]
-
-    available_set = set(available_dates)
-    availability_map = {date: 1 if date in available_set else 0 for date in all_dates}
-    print("Syncing FULL calendar (blocks + open) to Hostaway…")
-
-    blocks = []
-    for is_available, group in groupby(availability_map.items(), key=lambda x: x[1]):
-        dates = list(map(itemgetter(0), group))
-        blocks.append((is_available, dates[0], dates[-1]))
-
-    total_units = ALL_UNIT_COUNTS.get(listing_id, 1)
-    is_multi_unit = total_units > 1
-
-    for is_available, start_date, end_date in blocks:
-        if is_multi_unit:
-            desired_units = total_units if is_available else 0
-            payload = {
-                "startDate": start_date,
-                "endDate": end_date,
-                "isAvailable": 1 if is_available else 0,
-                "desiredUnitsToSell": desired_units,
-            }
-        else:
-            payload = {
-                "startDate": start_date,
-                "endDate": end_date,
-                "isAvailable": is_available,
-            }
-
-        response = requests.put(url, json=payload, headers=headers)
-        if response.status_code == 200:
-            if is_multi_unit:
-                print(f"{'✅ Units open' if is_available else '❌ Units blocked'} "
-                      f"({desired_units} units): {start_date} → {end_date}")
-            else:
-                print(f"{'✅ Available' if is_available else '❌ Blocked'}: {start_date} → {end_date}")
-        else:
-            print(f"⚠️ Error on {start_date} → {end_date}: {response.status_code} | {response.text}")
-
-# ---------- Hostaway: SOLO fechas disponibles ----------
-def update_calendar_available_only(token, listing_id, available_dates):
-    """
-    Para la lista secundaria (availability-only):
-      - SOLO abre fechas disponibles (no bloquea nada).
-      - Single-unit: isAvailable = 1
-      - Multi-unit: abre TODAS las unidades (desiredUnitsToSell = full capacity).
-    """
-    if not available_dates:
-        print("🛈 No hay fechas disponibles que subir (omitido).")
-        return
-
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
-    url = f"https://api.hostaway.com/v1/listings/{listing_id}/calendar"
-
-    uniq = sorted(set(available_dates))
-
-    # Agrupar fechas consecutivas en rangos
-    def is_next_day(a, b):
-        da = datetime.strptime(a, "%Y-%m-%d")
-        db = datetime.strptime(b, "%Y-%m-%d")
-        return (db - da).days == 1
-
-    ranges = []
-    start = uniq[0]
-    prev = uniq[0]
-    for d in uniq[1:]:
-        if is_next_day(prev, d):
-            prev = d
-        else:
-            ranges.append((start, prev))
-            start = d
-            prev = d
-    ranges.append((start, prev))
-
-    total_units = ALL_UNIT_COUNTS.get(listing_id, 1)
-    is_multi_unit = total_units > 1
-
-    print(f"Subiendo SOLO rangos disponibles a Hostaway ({len(ranges)} rangos)…")
-
-    for start_date, end_date in ranges:
-        if is_multi_unit:
-            payload = {
-                "startDate": start_date,
-                "endDate": end_date,
-                "isAvailable": 1,
-                "desiredUnitsToSell": total_units,
-            }
-            msg_ok = (f"✅ Disponible (multi, {total_units} unidades): "
-                      f"{start_date} → {end_date}")
-        else:
-            payload = {
-                "startDate": start_date,
-                "endDate": end_date,
-                "isAvailable": 1,
-            }
-            msg_ok = f"✅ Disponible: {start_date} → {end_date}"
-
-        response = requests.put(url, json=payload, headers=headers)
-        if response.status_code == 200:
-            print(msg_ok)
-        else:
-            print(
-                f"⚠️ Error al subir {start_date} → {end_date}: "
-                f"{response.status_code} | {response.text}"
-            )
 
 # ---------- Recolección ----------
 def collect_available_dates(resort_code, listing_id, bedroom_filter):
@@ -676,21 +541,21 @@ def collect_available_dates(resort_code, listing_id, bedroom_filter):
         set_date_field(driver, "toDate", DATE_RANGE_END.strftime("%m/%d/%Y"), fast=False)
 
         if not robust_continue_in_exchange_form(driver, wait, max_retries=3):
-            print("❌ No se pudo hacer clic en Continue")
+            logger.error("No se pudo hacer clic en Continue")
             return []
         if not wait_results_or_timeout(driver):
             return []
         if not click_any_unredeemed_vacation_exchange(driver, timeout=VACATION_EXCHANGE_TIMEOUT):
-            print("❌ No se pudo hacer clic en Vacation Exchange (Unredeemed Deposit).")
+            logger.error("No se pudo hacer clic en Vacation Exchange (Unredeemed Deposit).")
             return []
         if not wait_results_or_timeout(driver):
             return []
         _ = click_more_dates_until_exhausted(driver, resort_code, pause=MORE_DATES_PAUSE)
         block = find_resort_block_by_code(driver, resort_code)
         if not block:
-            print(f"❌ No se encontró el bloque del resort: {resort_code}")
+            logger.error("No se encontro el bloque del resort: %s", resort_code)
             return []
-        print(f"✅ Bloque del resort {resort_code} encontrado. Parseando…")
+        logger.info("Bloque del resort %s encontrado. Parseando...", resort_code)
         available_dates = parse_availability_from_block(block, listing_id, bedroom_filter)
         return list(sorted(set(available_dates)))
     finally:
@@ -701,46 +566,33 @@ def collect_available_dates(resort_code, listing_id, bedroom_filter):
 
 # ================== MAIN ==================
 def main():
-    print("🔐 Obteniendo token de Hostaway…")
-    token = None
-    try:
-        token = get_access_token()
-    except Exception as e:
-        print(f"Fallo la autenticación Hostaway: {e}")
-        traceback.print_exc()
+    logger.info("Iniciando scraper de Interval World -> iCal...")
 
-    # 1) FULL SYNC para la lista principal (ordenado: 0 dormitorios, luego 2, luego resto)
+    # 1) LISTA PRINCIPAL (ordenado: 0 dormitorios, luego 2, luego resto)
     ordered_primary = sort_primary_listings_by_bedrooms(PRIMARY_LISTINGS)
     for prop in ordered_primary:
-        print(f"\n🌐 FULL SYNC {prop['resort_code']} (Listing ID: {prop['listing_id']})…")
+        logger.info("Scraping %s (Listing ID: %s)...", prop['resort_code'], prop['listing_id'])
         try:
             available = collect_available_dates(prop["resort_code"], prop["listing_id"], PRIMARY_BEDROOM_FILTER)
-            # aplicar overrides manuales
             available = apply_manual_extra_availability(prop["listing_id"], available)
-            print(f"🗓️ Found {len(available)} available days (FULL SYNC + manual extras).")
-            if token is not None:
-                update_calendar_full(token, prop["listing_id"], available)
+            logger.info("%d dias disponibles encontrados.", len(available))
             generate_ics_for_listing(prop["listing_id"], available, DATE_RANGE_START, DATE_RANGE_END)
         except Exception as e:
-            print(f"❌ Error processing {prop['listing_id']} - {prop['resort_code']}: {e}")
-            traceback.print_exc()
+            logger.exception("Error processing %s - %s: %s", prop['listing_id'], prop['resort_code'], e)
 
-    # 2) SOLO DISPONIBILIDAD para la lista secundaria
+    # 2) LISTA SECUNDARIA (solo disponibilidad adicional)
     for prop in AVAILABILITY_ONLY_LISTINGS:
-        print(f"\n🌴 SOLO disponibilidad {prop['resort_code']} (Listing ID: {prop['listing_id']})…")
+        logger.info("Disponibilidad extra %s (Listing ID: %s)...", prop['resort_code'], prop['listing_id'])
         try:
             available = collect_available_dates(prop["resort_code"], prop["listing_id"], SECONDARY_BEDROOM_FILTER)
             available = apply_manual_extra_availability(prop["listing_id"], available)
             generate_ics_for_listing(prop["listing_id"], available, DATE_RANGE_START, DATE_RANGE_END)
             if available:
-                print(f"✅ {len(available)} días disponibles — subiendo SOLO disponibles a Hostaway…")
-                if token is not None:
-                    update_calendar_available_only(token, prop["listing_id"], available)
+                logger.info("%d dias disponibles.", len(available))
             else:
-                print(f"🚫 Sin disponibilidad — no se sube nada a Hostaway.")
+                logger.info("Sin disponibilidad.")
         except Exception as e:
-            print(f"⚠️ Error en {prop['listing_id']} ({prop['resort_code']}): {e}")
-            traceback.print_exc()
+            logger.exception("Error en %s (%s): %s", prop['listing_id'], prop['resort_code'], e)
 
 if __name__ == "__main__":
     main()
