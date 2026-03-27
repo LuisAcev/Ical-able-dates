@@ -60,7 +60,8 @@
       "Bash(node -e \"console.log\\(parseInt\\(undefined, 10\\)\\); console.log\\(parseInt\\(null, 10\\)\\); console.log\\(parseInt\\('''', 10\\)\\); console.log\\(parseInt\\(''invalid'', 10\\)\\);\")",
       "Read(//c/desenvolupament/AVI/backend/**)",
       "Bash(npm uninstall:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(git -C c:/desarrollo/AVI status)"
     ],
     "additionalDirectories": [
       "C:\\desarrollo\\AVI"
