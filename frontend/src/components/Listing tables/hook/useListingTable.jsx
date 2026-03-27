@@ -8,6 +8,9 @@ import {
 } from '../../../store/api/api';
 import { t } from '../../../i18n';
 
+const POLLING_INTERVAL_MS = 3000;
+const SAFETY_TIMEOUT_MS = 10 * 60 * 1000;
+
 export const useListingTable = (alertRef) => {
   const [updatingIds, setUpdatingIds] = useState(new Set());
   const wasUpdatingRef = useRef(false);
@@ -26,9 +29,18 @@ export const useListingTable = (alertRef) => {
 
   const {
     data: status,
+    error: statusError,
   } = useGetStatusQuery(undefined, {
-    pollingInterval: updatingIds.size > 0 ? 3000 : 0,
+    pollingInterval: updatingIds.size > 0 ? POLLING_INTERVAL_MS : 0,
   });
+
+  // Si el polling falla, liberar el bloqueo para que el usuario pueda reintentar
+  useEffect(() => {
+    if (statusError && updatingIds.size > 0) {
+      setUpdatingIds(new Set());
+      updateInFlightRef.current = false;
+    }
+  }, [statusError, updatingIds.size]);
 
   const isUpdating = status?.updating ?? false;
 
@@ -62,6 +74,18 @@ export const useListingTable = (alertRef) => {
       );
     }
   }, [updateIcal, alertRef]);
+
+  // Safety: si después de 10 min el flag sigue activo, liberarlo
+  useEffect(() => {
+    if (!updateInFlightRef.current) return;
+    const safetyTimer = setTimeout(() => {
+      if (updateInFlightRef.current) {
+        updateInFlightRef.current = false;
+        setUpdatingIds(new Set());
+      }
+    }, SAFETY_TIMEOUT_MS);
+    return () => clearTimeout(safetyTimer);
+  }, [updatingIds]);
 
   const handleToggleIcal = useCallback(async (listingId, icalEnabled) => {
     try {

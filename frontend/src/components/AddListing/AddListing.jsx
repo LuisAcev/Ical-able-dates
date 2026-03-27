@@ -90,7 +90,6 @@ export const AddListing = ({ alertRef }) => {
       }).unwrap();
       alertRef?.current?.showSuccess(t.addListing.createSuccess);
     } catch (err) {
-      console.error("Failed to create listing:", err);
       alertRef?.current?.showError(
         err?.data?.detail || t.addListing.createError
       );

@@ -561,8 +561,8 @@ def collect_available_dates(resort_code, listing_id, bedroom_filter):
     finally:
         try:
             driver.quit()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Error cerrando driver: %s", e)
 
 # ================== MAIN ==================
 def main():

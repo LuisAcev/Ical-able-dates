@@ -46,4 +46,4 @@ ICAL_SERVER_HOST = _env("ICAL_SERVER_HOST", "0.0.0.0")
 ICAL_SERVER_PORT = int(_env("ICAL_SERVER_PORT", "8085"))
 ICS_OUTPUT_DIR = Path(__file__).parent / _env("ICS_OUTPUT_DIR", "ics_files")
 ICAL_BASE_URL = _env("ICAL_BASE_URL", "")
-CORS_ORIGINS = [o.strip() for o in _env("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")]
+CORS_ORIGINS = [o.strip() for o in _env("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",") if o.strip()]

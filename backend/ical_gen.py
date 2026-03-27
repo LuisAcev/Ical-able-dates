@@ -11,6 +11,7 @@ eventos con los periodos NO disponibles.
 
 import logging
 import os
+import re
 import tempfile
 from datetime import datetime, timedelta, timezone
 from config import ICS_OUTPUT_DIR
@@ -122,6 +123,10 @@ def generate_ics_for_listing(listing_id, available_dates, range_start, range_end
         output_dir = ICS_OUTPUT_DIR
 
     os.makedirs(output_dir, exist_ok=True)
+
+    # Validar listing_id para evitar path traversal
+    if not re.match(r'^\d{1,25}$', str(listing_id)):
+        raise ValueError(f"listing_id invalido: {listing_id}")
 
     blocked_ranges = compute_blocked_ranges(available_dates, range_start, range_end)
     ics_content = generate_ics_content(listing_id, blocked_ranges)

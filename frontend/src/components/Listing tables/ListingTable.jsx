@@ -26,7 +26,7 @@ import {
   resortCodes,
 } from "../../styles/styles";
 import { useUpdateListingDataMutation, useDeleteListingMutation } from "../../store/api/api";
-import { t } from "../../i18n";
+import { t, dateLocale } from "../../i18n";
 
 const dialogPaperSx = {
   backgroundColor: "#424242",
@@ -65,7 +65,7 @@ const textFieldSx = {
 const formatDate = (iso) => {
   if (!iso) return t.listingTable.never;
   const d = new Date(iso);
-  return d.toLocaleString("es-CO", {
+  return d.toLocaleString(dateLocale, {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -76,7 +76,7 @@ const formatDate = (iso) => {
 
 const bedroomLabel = (val) => {
   const n = parseInt(val, 10);
-  if (n === 0) return t.listingTable.studio;
+  if (isNaN(n) || n === 0) return t.listingTable.studio;
   return t.listingTable.bedroomCount(n);
 };
 
@@ -103,7 +103,7 @@ export const ListingTable = ({
 
   // Edit modal state
   const [editDialog, setEditDialog] = useState({ open: false, listing: null });
-  const [editForm, setEditForm] = useState({ title: "", resort_codes: "", bedrooms: "", sync_mode: "" });
+  const [editForm, setEditForm] = useState({ title: "", resort_codes: "", bedrooms: "" });
   const [confirmUpdate, setConfirmUpdate] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -141,7 +141,7 @@ export const ListingTable = ({
       clearTimeout(copyTimerRef.current);
       copyTimerRef.current = setTimeout(() => setCopiedId(null), 2000);
     } catch {
-      console.error("Clipboard write failed");
+      alertRef?.current?.showError(t.alert.copyError);
     }
   };
 
@@ -161,7 +161,7 @@ export const ListingTable = ({
       clearTimeout(dialogCopyTimerRef.current);
       dialogCopyTimerRef.current = setTimeout(() => setUrlDialogCopied(false), 2000);
     } catch {
-      console.error("Clipboard write failed");
+      alertRef?.current?.showError(t.alert.copyError);
     }
   };
 
@@ -172,7 +172,6 @@ export const ListingTable = ({
       title: row.title || "",
       resort_codes: (row.resort_codes || []).join(", "),
       bedrooms: row.bedrooms || "0",
-      sync_mode: row.sync_mode || "primary",
     });
   };
 
@@ -201,12 +200,10 @@ export const ListingTable = ({
         title: editForm.title.trim(),
         resort_codes: editForm.resort_codes.split(",").map((c) => c.trim().toUpperCase()).filter(Boolean),
         bedrooms: editForm.bedrooms,
-        sync_mode: editForm.sync_mode,
       }).unwrap();
       alertRef?.current?.showSuccess(t.editListing.updateSuccess);
       handleCloseEdit();
     } catch (err) {
-      console.error("Failed to update listing:", err);
       alertRef?.current?.showError(err?.data?.detail || t.editListing.updateError);
     }
   };
@@ -229,7 +226,6 @@ export const ListingTable = ({
       alertRef?.current?.showSuccess(t.editListing.deleteSuccess);
       handleCloseEdit();
     } catch (err) {
-      console.error("Failed to delete listing:", err);
       alertRef?.current?.showError(err?.data?.detail || t.editListing.deleteError);
     }
   };
@@ -590,14 +586,14 @@ export const ListingTable = ({
             slotProps={{ input: { inputProps: { min: 0 } } }}
             sx={textFieldSx}
           />
-          <TextField
+          <Button
+            onClick={handleRequestDelete}
+            variant="contained"
             fullWidth
-            size="small"
-            label={t.editListing.syncModeLabel}
-            value={editForm.sync_mode}
-            onChange={(e) => setEditForm((p) => ({ ...p, sync_mode: e.target.value }))}
-            sx={textFieldSx}
-          />
+            sx={{ ...deleteButtonSx, mt: 3, py: 1.2, fontSize: "0.95rem" }}
+          >
+            {t.editListing.deleteButton}
+          </Button>
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center" }}>
           <Button onClick={handleRequestUpdate} variant="contained" sx={greenButtonSx}>
@@ -605,9 +601,6 @@ export const ListingTable = ({
           </Button>
           <Button onClick={handleCloseEdit} sx={cancelButtonSx}>
             {t.editListing.cancelButton}
-          </Button>
-          <Button onClick={handleRequestDelete} variant="contained" sx={deleteButtonSx}>
-            {t.editListing.deleteButton}
           </Button>
         </DialogActions>
       </Dialog>

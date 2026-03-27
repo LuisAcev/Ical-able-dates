@@ -58,8 +58,7 @@ export const IcalBaseUrlInput = ({ alertRef }) => {
     try {
       await setBaseUrl(value.trim()).unwrap();
       alertRef?.current?.showSuccess(t.icalBaseUrl.saveSuccess);
-    } catch (err) {
-      console.error("Failed to save iCal base URL:", err);
+    } catch {
       alertRef?.current?.showError(t.icalBaseUrl.saveError);
     }
   };

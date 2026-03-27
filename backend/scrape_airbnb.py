@@ -8,6 +8,7 @@ Hace login automatico con credenciales del .env (sin depender de perfil de Chrom
 
 import logging
 import re
+import threading
 import time
 from selenium import webdriver
 
@@ -24,40 +25,43 @@ REQUEST_DELAY = 4
 
 _driver = None
 _logged_in = False
+_driver_lock = threading.Lock()
 
 
 def get_driver():
     """Crea o reutiliza un driver de Chrome (perfil temporal)."""
     global _driver
-    if _driver is not None:
-        try:
-            _driver.title
-            return _driver
-        except Exception:
-            _driver = None
+    with _driver_lock:
+        if _driver is not None:
+            try:
+                _driver.current_window_handle
+                return _driver
+            except Exception:
+                _driver = None
 
-    # Perfil persistente separado para Selenium (no conflicta con Chrome abierto)
-    profile_dir = AIRBNB_PROFILE_DIR
-    options = Options()
-    options.add_argument(f"--user-data-dir={profile_dir}")
-    options.add_argument("--profile-directory=Default")
-    options.add_argument("--headless=new")
-    options.add_argument("--no-first-run")
-    options.add_argument("--no-default-browser-check")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    _driver = webdriver.Chrome(options=options)
-    return _driver
+        # Perfil persistente separado para Selenium (no conflicta con Chrome abierto)
+        profile_dir = AIRBNB_PROFILE_DIR
+        options = Options()
+        options.add_argument(f"--user-data-dir={profile_dir}")
+        options.add_argument("--profile-directory=Default")
+        options.add_argument("--headless=new")
+        options.add_argument("--no-first-run")
+        options.add_argument("--no-default-browser-check")
+        options.add_argument("--disable-blink-features=AutomationControlled")
+        _driver = webdriver.Chrome(options=options)
+        return _driver
 
 
 def close_driver():
     global _driver, _logged_in
-    if _driver:
-        try:
-            _driver.quit()
-        except Exception:
-            pass
-        _driver = None
-        _logged_in = False
+    with _driver_lock:
+        if _driver:
+            try:
+                _driver.quit()
+            except Exception as e:
+                logger.warning("Error cerrando driver Airbnb: %s", e)
+            _driver = None
+            _logged_in = False
 
 
 def _ensure_logged_in(driver):

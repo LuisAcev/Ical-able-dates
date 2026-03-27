@@ -4,6 +4,8 @@ export const listingsApi = createApi({
   reducerPath: 'listingsApi',
   baseQuery: fetchBaseQuery({ baseUrl: '/api' }),
   tagTypes: ['Listings', 'Status', 'Settings'],
+  keepUnusedDataFor: 120,
+  refetchOnReconnect: true,
   endpoints: (builder) => ({
 
     getListings: builder.query({

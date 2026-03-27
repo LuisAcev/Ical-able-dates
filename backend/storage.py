@@ -6,10 +6,13 @@ Persistencia JSON para listings y timestamps de actualizacion.
 """
 
 import json
+import logging
 import os
 import tempfile
 import threading
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 from datetime import datetime, timezone
 
 DATA_DIR = Path(__file__).parent / "data"
@@ -41,8 +44,12 @@ def _atomic_write(filepath, data):
 def _read_json(filepath, default):
     if not filepath.exists():
         return default
-    with open(filepath, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, ValueError):
+        logger.error("JSON corrupto en %s, usando default", filepath)
+        return default
 
 
 # ================== LISTINGS ==================

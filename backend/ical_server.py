@@ -13,6 +13,7 @@ Uso:
 
 import logging
 import os
+import re
 import threading
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 import uvicorn
 
 from config import ICS_OUTPUT_DIR, ICAL_SERVER_HOST, ICAL_SERVER_PORT, CORS_ORIGINS, ICAL_BASE_URL
@@ -35,6 +36,7 @@ from storage import (
 @asynccontextmanager
 async def lifespan(_app):
     """Inicializa la data de listings si no existe."""
+    os.makedirs(ICS_OUTPUT_DIR, exist_ok=True)
     build_initial_listings()
     ensure_ical_enabled_field()
     yield
@@ -46,8 +48,8 @@ app = FastAPI(title="AVI iCalendar Server", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 # Estado global de actualizacion
@@ -60,26 +62,69 @@ _update_status = {
     "error": None,
 }
 
+# Timeout de seguridad: si una actualizacion tarda mas de 10 min, la marca como terminada
+_TASK_TIMEOUT_SECONDS = 10 * 60
+
+def _start_safety_timeout():
+    """Inicia un timer que libera el estado updating si se excede el timeout."""
+    def _timeout_handler():
+        with _update_lock:
+            if _update_status["updating"]:
+                logger.warning("Timeout de seguridad: actualizacion excedio %ds", _TASK_TIMEOUT_SECONDS)
+                _update_status.update(updating=False, current_listing=None, error="Timeout de actualizacion")
+    timer = threading.Timer(_TASK_TIMEOUT_SECONDS, _timeout_handler)
+    timer.daemon = True
+    timer.start()
+    return timer
+
+
+# ================== HELPERS ==================
+
+_LISTING_ID_RE = re.compile(r'^\d{1,25}$')
+_RESORT_CODE_RE = re.compile(r'^[A-Z0-9]{2,10}$')
+
+def _validate_listing_id_param(listing_id: str):
+    """Valida que el listing_id de un path param sea solo digitos."""
+    if not _LISTING_ID_RE.match(listing_id):
+        raise HTTPException(status_code=400, detail="listing_id invalido")
+
 
 # ================== MODELOS ==================
 
 class ListingRegister(BaseModel):
     """Solo necesita el ID de Airbnb. String para evitar perdida de precision en JS."""
-    listing_id: str
+    listing_id: str = Field(..., min_length=1, max_length=25, pattern=r'^\d+$')
+
+def _check_resort_codes(v):
+    """Validacion compartida de resort codes."""
+    for code in v:
+        if not _RESORT_CODE_RE.match(code.strip().upper()):
+            raise ValueError(f'Resort code invalido: {code}')
+    return v
 
 class ListingCreate(BaseModel):
-    listing_id: str
-    title: str = ""
+    listing_id: str = Field(..., min_length=1, max_length=25, pattern=r'^\d+$')
+    title: str = Field(default="", max_length=500)
     resort_codes: list[str] = []
     bedrooms: str = "0"
     sync_mode: str = "primary"
 
+    @field_validator('resort_codes', mode='before')
+    @classmethod
+    def validate_resort_codes(cls, v):
+        return _check_resort_codes(v)
+
 class ListingManualCreate(BaseModel):
     """Creacion manual de listing con todos los campos requeridos."""
-    listing_id: str
-    title: str
-    resort_codes: list[str]
+    listing_id: str = Field(..., min_length=1, max_length=25, pattern=r'^\d+$')
+    title: str = Field(..., min_length=1, max_length=500)
+    resort_codes: list[str] = Field(..., min_length=1)
     bedrooms: str
+
+    @field_validator('resort_codes', mode='before')
+    @classmethod
+    def validate_resort_codes(cls, v):
+        return _check_resort_codes(v)
 
 class IcalToggle(BaseModel):
     ical_enabled: bool
@@ -113,12 +158,14 @@ def list_calendars():
 @app.get("/ical/{filename}")
 def serve_ics(filename: str):
     """Sirve un archivo .ics con el Content-Type correcto para Airbnb."""
-    if not filename.endswith(".ics"):
-        raise HTTPException(status_code=400, detail="Solo se sirven archivos .ics")
+    if not re.match(r'^[a-zA-Z0-9_\-]+\.ics$', filename):
+        raise HTTPException(status_code=400, detail="Nombre de archivo invalido")
 
     file_path = (Path(ICS_OUTPUT_DIR) / filename).resolve()
 
-    if not str(file_path).startswith(str(Path(ICS_OUTPUT_DIR).resolve())):
+    try:
+        file_path.relative_to(Path(ICS_OUTPUT_DIR).resolve())
+    except ValueError:
         raise HTTPException(status_code=403, detail="Acceso denegado")
 
     if not file_path.exists():
@@ -181,7 +228,8 @@ def api_register_listing(data: ListingRegister):
     try:
         details = fetch_listing_details(data.listing_id)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener datos de Airbnb: {e}")
+        logger.exception("Error scraping Airbnb para listing %s", data.listing_id)
+        raise HTTPException(status_code=500, detail="Error al obtener datos de Airbnb")
     finally:
         close_driver()
 
@@ -238,14 +286,15 @@ def api_create_listing_manual(data: ListingManualCreate):
 @app.put("/api/listings/{listing_id}")
 def api_update_listing_data(listing_id: str, data: ListingCreate):
     """Actualiza los datos de un listing (titulo, resort_codes, etc)."""
+    _validate_listing_id_param(listing_id)
     existing = get_listing(listing_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Listing no encontrado")
 
-    existing["title"] = data.title or existing.get("title", "")
-    existing["resort_codes"] = data.resort_codes or existing.get("resort_codes", [])
-    existing["bedrooms"] = data.bedrooms or existing.get("bedrooms", "0")
-    existing["sync_mode"] = data.sync_mode or existing.get("sync_mode", "primary")
+    existing["title"] = data.title if data.title is not None else existing.get("title", "")
+    existing["resort_codes"] = data.resort_codes if data.resort_codes is not None else existing.get("resort_codes", [])
+    existing["bedrooms"] = data.bedrooms if data.bedrooms is not None else existing.get("bedrooms", "0")
+    existing["sync_mode"] = data.sync_mode if data.sync_mode is not None else existing.get("sync_mode", "primary")
     upsert_listing(existing)
     return {"message": "Listing actualizado", "listing": existing}
 
@@ -253,6 +302,7 @@ def api_update_listing_data(listing_id: str, data: ListingCreate):
 @app.delete("/api/listings/{listing_id}")
 def api_delete_listing(listing_id: str):
     """Elimina un listing del sistema."""
+    _validate_listing_id_param(listing_id)
     existing = get_listing(listing_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Listing no encontrado")
@@ -275,6 +325,7 @@ def api_delete_listing(listing_id: str):
 @app.patch("/api/listings/{listing_id}/toggle-ical")
 def api_toggle_ical(listing_id: str, data: IcalToggle):
     """Activa o desactiva la actualizacion iCal de un listing."""
+    _validate_listing_id_param(listing_id)
     existing = get_listing(listing_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Listing no encontrado")
@@ -300,13 +351,16 @@ def _run_update_single(listing_id):
             progress=0, total=1, error=None,
         )
 
+    timer = _start_safety_timeout()
     try:
         from updater import update_single_listing
         result = update_single_listing(listing_id)
         _set_status(error=result.get("error"))
     except Exception as e:
-        _set_status(error=str(e))
+        logger.exception("Error en update_single: %s", e)
+        _set_status(error="Error interno al actualizar listing")
     finally:
+        timer.cancel()
         _set_status(updating=False, current_listing=None, progress=1)
 
 
@@ -321,6 +375,7 @@ def _run_update_all():
             progress=0, total=len(listings), error=None,
         )
 
+    timer = _start_safety_timeout()
     try:
         from updater import update_single_listing
         for i, listing in enumerate(listings):
@@ -333,14 +388,17 @@ def _run_update_all():
             except Exception as e:
                 logger.error("Error updating %s: %s", lid, e)
     except Exception as e:
-        _set_status(error=str(e))
+        logger.exception("Error en update_all: %s", e)
+        _set_status(error="Error interno en actualizacion masiva")
     finally:
+        timer.cancel()
         _set_status(updating=False, current_listing=None)
 
 
 @app.post("/api/listings/{listing_id}/update", status_code=202)
 def api_update_single(listing_id: str, background_tasks: BackgroundTasks):
     """Lanza actualizacion de iCal de un listing en background."""
+    _validate_listing_id_param(listing_id)
     with _update_lock:
         if _update_status["updating"]:
             raise HTTPException(status_code=409, detail="Ya hay una actualizacion en progreso")
