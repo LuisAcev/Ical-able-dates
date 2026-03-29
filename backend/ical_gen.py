@@ -150,3 +150,45 @@ def generate_ics_for_listing(listing_id, available_dates, range_start, range_end
     event_count = len(blocked_ranges)
     logger.info("%s.ics generado (%d bloqueos)", listing_id, event_count)
     return target_path
+
+
+def parse_ics_file(listing_id, output_dir=None):
+    """
+    Lee un archivo .ics existente y retorna el set de fechas bloqueadas.
+
+    Returns:
+        set de strings "YYYY-MM-DD" con las fechas bloqueadas,
+        o set vacio si el archivo no existe.
+    """
+    if output_dir is None:
+        output_dir = ICS_OUTPUT_DIR
+
+    ics_path = os.path.join(output_dir, f"{listing_id}.ics")
+    if not os.path.exists(ics_path):
+        return set()
+
+    blocked = set()
+    with open(ics_path, "r", encoding="utf-8") as f:
+        dtstart = None
+        for line in f:
+            line = line.strip()
+            if line.startswith("DTSTART;VALUE=DATE:") and ":" in line:
+                parts = line.split(":", 1)
+                if len(parts) == 2:
+                    dtstart = parts[1].strip()
+            elif line.startswith("DTEND;VALUE=DATE:") and dtstart and ":" in line:
+                parts = line.split(":", 1)
+                if len(parts) < 2:
+                    continue
+                dtend = parts[1].strip()
+                try:
+                    start = datetime.strptime(dtstart, "%Y%m%d")
+                    end = datetime.strptime(dtend, "%Y%m%d")
+                    cur = start
+                    while cur < end:
+                        blocked.add(cur.strftime("%Y-%m-%d"))
+                        cur += timedelta(days=1)
+                except ValueError:
+                    pass
+                dtstart = None
+    return blocked

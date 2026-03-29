@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -17,7 +17,7 @@ import { t } from "../../i18n";
 const dialogPaperSx = {
   backgroundColor: "#424242",
   color: "#E0E0E0",
-  borderRadius: "12px",
+  borderRadius: "1.5rem",
 };
 
 export const IcalBaseUrlInput = ({ alertRef }) => {
@@ -27,12 +27,6 @@ export const IcalBaseUrlInput = ({ alertRef }) => {
   const [value, setValue] = useState("");
   const [editOpen, setEditOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
-
-  useEffect(() => {
-    if (data?.base_url !== undefined) {
-      setValue(data.base_url);
-    }
-  }, [data?.base_url]);
 
   const handleOpenEdit = () => {
     setValue(data?.base_url ?? "");
@@ -96,6 +90,7 @@ export const IcalBaseUrlInput = ({ alertRef }) => {
             sx={{
               mt: 1,
               "& .MuiOutlinedInput-root": {
+                borderRadius: "1rem",
                 color: "#E0E0E0",
                 "& fieldset": { borderColor: "#626262" },
                 "&:hover fieldset": { borderColor: "#16A34A" },

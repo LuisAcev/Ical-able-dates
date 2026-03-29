@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 export const listingsApi = createApi({
   reducerPath: 'listingsApi',
   baseQuery: fetchBaseQuery({ baseUrl: '/api' }),
-  tagTypes: ['Listings', 'Status', 'Settings'],
+  tagTypes: ['Listings', 'Status', 'Settings', 'Dates'],
   keepUnusedDataFor: 120,
   refetchOnReconnect: true,
   endpoints: (builder) => ({
@@ -93,6 +93,34 @@ export const listingsApi = createApi({
       invalidatesTags: ['Settings', 'Listings'],
     }),
 
+    getListingDates: builder.query({
+      query: (listingId) => `/listings/${listingId}/dates`,
+      providesTags: (result, error, listingId) => [{ type: 'Dates', id: listingId }],
+    }),
+
+    saveManualDates: builder.mutation({
+      query: ({ listingId, manual_dates }) => ({
+        url: `/listings/${listingId}/manual-dates`,
+        method: 'PUT',
+        body: { manual_dates },
+      }),
+      invalidatesTags: (result, error, { listingId }) => [
+        { type: 'Dates', id: listingId },
+        'Listings',
+      ],
+    }),
+
+    regenerateIcal: builder.mutation({
+      query: (listingId) => ({
+        url: `/listings/${listingId}/regenerate-ical`,
+        method: 'POST',
+      }),
+      invalidatesTags: (result, error, listingId) => [
+        { type: 'Dates', id: listingId },
+        'Listings',
+      ],
+    }),
+
   }),
 });
 
@@ -108,4 +136,7 @@ export const {
   useCreateListingManualMutation,
   useDeleteListingMutation,
   useUpdateListingDataMutation,
+  useGetListingDatesQuery,
+  useSaveManualDatesMutation,
+  useRegenerateIcalMutation,
 } = listingsApi;

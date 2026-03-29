@@ -25,11 +25,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 import uvicorn
 
-from config import ICS_OUTPUT_DIR, ICAL_SERVER_HOST, ICAL_SERVER_PORT, CORS_ORIGINS, ICAL_BASE_URL
+from config import ICS_OUTPUT_DIR, ICAL_SERVER_HOST, ICAL_SERVER_PORT, CORS_ORIGINS, ICAL_BASE_URL, DATE_RANGE_START, DATE_RANGE_END
+from ical_gen import parse_ics_file, generate_ics_for_listing
 from storage import (
     load_listings, upsert_listing, update_timestamp, delete_listing,
     build_initial_listings, get_listing, ensure_ical_enabled_field,
-    get_setting, save_setting,
+    ensure_manual_dates_field, get_setting, save_setting,
 )
 
 
@@ -39,6 +40,7 @@ async def lifespan(_app):
     os.makedirs(ICS_OUTPUT_DIR, exist_ok=True)
     build_initial_listings()
     ensure_ical_enabled_field()
+    ensure_manual_dates_field()
     yield
 
 
@@ -103,7 +105,7 @@ def _check_resort_codes(v):
     return v
 
 class ListingCreate(BaseModel):
-    listing_id: str = Field(..., min_length=1, max_length=25, pattern=r'^\d+$')
+    listing_id: str = Field(default="", max_length=25)
     title: str = Field(default="", max_length=500)
     resort_codes: list[str] = []
     bedrooms: str = "0"
@@ -131,6 +133,25 @@ class IcalToggle(BaseModel):
 
 class IcalBaseUrl(BaseModel):
     base_url: str
+
+class ManualDatesUpdate(BaseModel):
+    manual_dates: list[list[str]]
+
+    @field_validator('manual_dates', mode='before')
+    @classmethod
+    def validate_dates(cls, v):
+        for pair in v:
+            if len(pair) != 2:
+                raise ValueError('Cada rango debe tener [start, end]')
+            from datetime import datetime as dt
+            try:
+                start = dt.strptime(pair[0], "%Y-%m-%d")
+                end = dt.strptime(pair[1], "%Y-%m-%d")
+            except ValueError:
+                raise ValueError(f'Fecha invalida: {pair}')
+            if start >= end:
+                raise ValueError(f'start debe ser menor que end: {pair}')
+        return v
 
 
 # ================== ICAL ENDPOINTS ==================
@@ -333,6 +354,82 @@ def api_toggle_ical(listing_id: str, data: IcalToggle):
     existing["ical_enabled"] = data.ical_enabled
     upsert_listing(existing)
     return {"message": "Estado iCal actualizado", "listing": existing}
+
+
+@app.get("/api/listings/{listing_id}/dates")
+def api_get_listing_dates(listing_id: str):
+    """Retorna fechas bloqueadas, disponibles y manuales para el calendario."""
+    _validate_listing_id_param(listing_id)
+    existing = get_listing(listing_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Listing no encontrado")
+
+    blocked_dates = parse_ics_file(listing_id)
+    range_start = DATE_RANGE_START.strftime("%Y-%m-%d")
+    range_end = DATE_RANGE_END.strftime("%Y-%m-%d")
+
+    from datetime import timedelta
+    all_dates = set()
+    cur = DATE_RANGE_START
+    while cur <= DATE_RANGE_END:
+        all_dates.add(cur.strftime("%Y-%m-%d"))
+        cur += timedelta(days=1)
+
+    available_dates = sorted(all_dates - blocked_dates)
+
+    return {
+        "range_start": range_start,
+        "range_end": range_end,
+        "blocked_dates": sorted(blocked_dates),
+        "available_dates": available_dates,
+        "manual_dates": existing.get("manual_dates", []),
+    }
+
+
+@app.put("/api/listings/{listing_id}/manual-dates")
+def api_save_manual_dates(listing_id: str, data: ManualDatesUpdate):
+    """Guarda rangos de fechas manuales para un listing."""
+    _validate_listing_id_param(listing_id)
+    existing = get_listing(listing_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Listing no encontrado")
+
+    existing["manual_dates"] = data.manual_dates
+    upsert_listing(existing)
+    return {"message": "Fechas manuales guardadas", "manual_dates": data.manual_dates}
+
+
+@app.post("/api/listings/{listing_id}/regenerate-ical")
+def api_regenerate_ical(listing_id: str):
+    """Regenera el .ics usando datos existentes + fechas manuales, sin re-scrapear."""
+    _validate_listing_id_param(listing_id)
+    existing = get_listing(listing_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Listing no encontrado")
+
+    ics_path = Path(ICS_OUTPUT_DIR) / f"{listing_id}.ics"
+    if not ics_path.exists():
+        raise HTTPException(status_code=404, detail="No se encontro archivo .ics. Ejecuta una actualizacion primero.")
+
+    blocked_dates = parse_ics_file(listing_id)
+
+    from datetime import timedelta
+    all_dates = set()
+    cur = DATE_RANGE_START
+    while cur <= DATE_RANGE_END:
+        all_dates.add(cur.strftime("%Y-%m-%d"))
+        cur += timedelta(days=1)
+
+    available_dates = list(all_dates - blocked_dates)
+
+    from allin import apply_manual_extra_availability
+    manual = [tuple(r) for r in existing.get("manual_dates", [])] or None
+    available_dates = apply_manual_extra_availability(listing_id, available_dates, stored_manual_dates=manual)
+
+    generate_ics_for_listing(listing_id, available_dates, DATE_RANGE_START, DATE_RANGE_END)
+    ts = update_timestamp(listing_id)
+
+    return {"message": f"iCal regenerado para {listing_id}", "updated_at": ts}
 
 
 def _set_status(**kwargs):

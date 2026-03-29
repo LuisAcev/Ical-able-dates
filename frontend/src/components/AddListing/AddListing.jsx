@@ -11,16 +11,18 @@ import AddIcon from "@mui/icons-material/Add";
 import { useCreateListingManualMutation } from "../../store/api/api";
 import { primaryIconButton } from "../../styles/styles";
 import { t } from "../../i18n";
+import { Box } from "@mui/material";
 
 const dialogPaperSx = {
   backgroundColor: "#424242",
   color: "#E0E0E0",
-  borderRadius: "12px",
+  borderRadius: "1.5rem",
 };
 
 const textFieldSx = {
   mt: 2,
   "& .MuiOutlinedInput-root": {
+    borderRadius: "1rem",
     color: "#E0E0E0",
     "& fieldset": { borderColor: "#626262" },
     "&:hover fieldset": { borderColor: "#16A34A" },
@@ -91,7 +93,7 @@ export const AddListing = ({ alertRef }) => {
       alertRef?.current?.showSuccess(t.addListing.createSuccess);
     } catch (err) {
       alertRef?.current?.showError(
-        err?.data?.detail || t.addListing.createError
+        err?.data?.detail || t.addListing.createError,
       );
     }
   };
@@ -136,30 +138,39 @@ export const AddListing = ({ alertRef }) => {
             onChange={updateField("title")}
             sx={textFieldSx}
           />
-          <TextField
-            fullWidth
-            size="small"
-            label={t.addListing.resortCodesLabel}
-            placeholder={t.addListing.resortCodesPlaceholder}
-            value={form.resort_codes}
-            onChange={updateField("resort_codes")}
-            sx={textFieldSx}
-          />
-          <TextField
-            fullWidth
-            size="small"
-            select
-            label={t.addListing.bedroomsLabel}
-            value={form.bedrooms}
-            onChange={updateField("bedrooms")}
-            sx={textFieldSx}
+          <Box
+            sx={{
+              display: "flex",
+              gap: 3,
+            }}
           >
-            {BEDROOM_OPTIONS.map((opt) => (
-              <MenuItem key={opt} value={opt}>
-                {opt === "0" ? t.listingTable.studio : t.listingTable.bedroomCount(opt)}
-              </MenuItem>
-            ))}
-          </TextField>
+            <TextField
+              fullWidth
+              size="small"
+              label={t.addListing.resortCodesLabel}
+              placeholder={t.addListing.resortCodesPlaceholder}
+              value={form.resort_codes}
+              onChange={updateField("resort_codes")}
+              sx={textFieldSx}
+            />
+            <TextField
+              fullWidth
+              size="small"
+              select
+              label={t.addListing.bedroomsLabel}
+              value={form.bedrooms}
+              onChange={updateField("bedrooms")}
+              sx={textFieldSx}
+            >
+              {BEDROOM_OPTIONS.map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {opt === "0"
+                    ? t.listingTable.studio
+                    : t.listingTable.bedroomCount(opt)}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center" }}>
           <Button

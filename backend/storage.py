@@ -137,6 +137,19 @@ def get_setting(key, default=None):
 
 # ================== MIGRATIONS ==================
 
+def ensure_manual_dates_field():
+    """Agrega manual_dates=[] a listings existentes que no tengan el campo."""
+    with _storage_lock:
+        listings = load_listings()
+        changed = False
+        for l in listings:
+            if "manual_dates" not in l:
+                l["manual_dates"] = []
+                changed = True
+        if changed:
+            save_listings(listings)
+
+
 def ensure_ical_enabled_field():
     """Agrega ical_enabled=True a listings existentes que no tengan el campo."""
     with _storage_lock:

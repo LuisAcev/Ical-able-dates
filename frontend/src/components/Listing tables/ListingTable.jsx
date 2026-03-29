@@ -12,6 +12,8 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import CheckIcon from "@mui/icons-material/Check";
 import EditIcon from "@mui/icons-material/Edit";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import { IcalDatesModal } from "../IcalDatesModal/IcalDatesModal";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -25,13 +27,27 @@ import {
   actionIconButton,
   resortCodes,
 } from "../../styles/styles";
-import { useUpdateListingDataMutation, useDeleteListingMutation } from "../../store/api/api";
+import {
+  useUpdateListingDataMutation,
+  useDeleteListingMutation,
+} from "../../store/api/api";
 import { t, dateLocale } from "../../i18n";
+
+const extractErrorMessage = (err, fallback) => {
+  const detail = err?.data?.detail;
+  if (!detail) return fallback;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail))
+    return detail
+      .map((d) => d.msg || d.message || JSON.stringify(d))
+      .join(", ");
+  return fallback;
+};
 
 const dialogPaperSx = {
   backgroundColor: "#424242",
   color: "#E0E0E0",
-  borderRadius: "12px",
+  borderRadius: "1.5rem",
 };
 
 const greenButtonSx = {
@@ -53,6 +69,7 @@ const deleteButtonSx = {
 const textFieldSx = {
   mt: 1.5,
   "& .MuiOutlinedInput-root": {
+    borderRadius: "1rem",
     color: "#E0E0E0",
     "& fieldset": { borderColor: "#626262" },
     "&:hover fieldset": { borderColor: "#16A34A" },
@@ -95,6 +112,7 @@ export const ListingTable = ({
     currentEnabled: true,
   });
 
+  const [calendarDialog, setCalendarDialog] = useState({ open: false, listingId: null });
   const [urlDialog, setUrlDialog] = useState({ open: false, url: "" });
   const [copiedId, setCopiedId] = useState(null);
   const [urlDialogCopied, setUrlDialogCopied] = useState(false);
@@ -103,7 +121,11 @@ export const ListingTable = ({
 
   // Edit modal state
   const [editDialog, setEditDialog] = useState({ open: false, listing: null });
-  const [editForm, setEditForm] = useState({ title: "", resort_codes: "", bedrooms: "" });
+  const [editForm, setEditForm] = useState({
+    title: "",
+    resort_codes: "",
+    bedrooms: "",
+  });
   const [confirmUpdate, setConfirmUpdate] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -159,7 +181,10 @@ export const ListingTable = ({
       await navigator.clipboard.writeText(urlDialog.url);
       setUrlDialogCopied(true);
       clearTimeout(dialogCopyTimerRef.current);
-      dialogCopyTimerRef.current = setTimeout(() => setUrlDialogCopied(false), 2000);
+      dialogCopyTimerRef.current = setTimeout(
+        () => setUrlDialogCopied(false),
+        2000,
+      );
     } catch {
       alertRef?.current?.showError(t.alert.copyError);
     }
@@ -198,13 +223,18 @@ export const ListingTable = ({
       await updateListingData({
         listingId: lid,
         title: editForm.title.trim(),
-        resort_codes: editForm.resort_codes.split(",").map((c) => c.trim().toUpperCase()).filter(Boolean),
+        resort_codes: editForm.resort_codes
+          .split(",")
+          .map((c) => c.trim().toUpperCase())
+          .filter(Boolean),
         bedrooms: editForm.bedrooms,
       }).unwrap();
       alertRef?.current?.showSuccess(t.editListing.updateSuccess);
       handleCloseEdit();
     } catch (err) {
-      alertRef?.current?.showError(err?.data?.detail || t.editListing.updateError);
+      alertRef?.current?.showError(
+        extractErrorMessage(err, t.editListing.updateError),
+      );
     }
   };
 
@@ -226,7 +256,9 @@ export const ListingTable = ({
       alertRef?.current?.showSuccess(t.editListing.deleteSuccess);
       handleCloseEdit();
     } catch (err) {
-      alertRef?.current?.showError(err?.data?.detail || t.editListing.deleteError);
+      alertRef?.current?.showError(
+        extractErrorMessage(err, t.editListing.deleteError),
+      );
     }
   };
 
@@ -303,9 +335,20 @@ export const ListingTable = ({
         }
         const isCopied = copiedId === lid;
         return (
-          <Box sx={{ display: "flex", gap: 0.5, justifyContent: "center", alignItems: "center", width: "100%" }}>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 0.5,
+              justifyContent: "center",
+              alignItems: "center",
+              width: "100%",
+              paddingTop: "0.5rem",
+            }}
+          >
             <Tooltip
-              title={isCopied ? t.listingTable.copied : t.listingTable.copyTooltip}
+              title={
+                isCopied ? t.listingTable.copied : t.listingTable.copyTooltip
+              }
               arrow
             >
               <IconButton
@@ -317,7 +360,11 @@ export const ListingTable = ({
                   "&:hover": { backgroundColor: "rgba(144, 202, 249, 0.15)" },
                 }}
               >
-                {isCopied ? <CheckIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
+                {isCopied ? (
+                  <CheckIcon fontSize="small" />
+                ) : (
+                  <ContentCopyIcon fontSize="small" />
+                )}
               </IconButton>
             </Tooltip>
             <Tooltip title={t.listingTable.viewUrlTooltip} arrow>
@@ -338,6 +385,29 @@ export const ListingTable = ({
       },
     },
     {
+      field: "ical_dates",
+      headerName: t.icalDates.columnHeader,
+      width: 100,
+      align: "center",
+      headerAlign: "center",
+      sortable: false,
+      filterable: false,
+      renderCell: (params) => (
+        <Tooltip title={t.icalDates.openTooltip} arrow>
+          <IconButton
+            aria-label={t.icalDates.openTooltip}
+            onClick={() => setCalendarDialog({ open: true, listingId: params.row.listing_id })}
+            sx={{
+              color: "#ce93d8",
+              "&:hover": { backgroundColor: "rgba(206, 147, 216, 0.15)" },
+            }}
+          >
+            <CalendarMonthIcon />
+          </IconButton>
+        </Tooltip>
+      ),
+    },
+    {
       field: "actions",
       headerName: t.listingTable.actions,
       width: 170,
@@ -350,7 +420,15 @@ export const ListingTable = ({
         const busy = updatingIds.has(lid);
         const icalEnabled = params.row.ical_enabled !== false;
         return (
-          <Box sx={{ display: "flex", gap: 1, justifyContent: "center", alignItems: "center", width: "100%" }}>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 1,
+              justifyContent: "center",
+              alignItems: "center",
+              width: "100%",
+            }}
+          >
             <Tooltip title={t.listingTable.updateTooltip} arrow>
               <span>
                 <IconButton
@@ -376,7 +454,11 @@ export const ListingTable = ({
               arrow
             >
               <IconButton
-                aria-label={icalEnabled ? t.icalToggle.lockTooltip : t.icalToggle.unlockTooltip}
+                aria-label={
+                  icalEnabled
+                    ? t.icalToggle.lockTooltip
+                    : t.icalToggle.unlockTooltip
+                }
                 onClick={() => handleOpenConfirm(lid, icalEnabled)}
                 sx={{
                   width: 40,
@@ -513,6 +595,7 @@ export const ListingTable = ({
             sx={{
               mt: 1,
               "& .MuiOutlinedInput-root": {
+                borderRadius: "1rem",
                 color: "#E0E0E0",
                 fontFamily: "monospace",
                 fontSize: 13,
@@ -534,7 +617,9 @@ export const ListingTable = ({
               },
             }}
           >
-            {urlDialogCopied ? t.listingTable.copied : t.listingTable.copyButton}
+            {urlDialogCopied
+              ? t.listingTable.copied
+              : t.listingTable.copyButton}
           </Button>
           <Button onClick={handleCloseUrlDialog} sx={cancelButtonSx}>
             {t.listingTable.closeButton}
@@ -558,34 +643,53 @@ export const ListingTable = ({
             label={t.editListing.listingIdLabel}
             value={editDialog.listing?.listing_id || ""}
             slotProps={{ input: { readOnly: true } }}
-            sx={{ ...textFieldSx, "& .MuiOutlinedInput-root": { ...textFieldSx["& .MuiOutlinedInput-root"], color: "#999" } }}
+            sx={{
+              ...textFieldSx,
+              "& .MuiOutlinedInput-root": {
+                ...textFieldSx["& .MuiOutlinedInput-root"],
+                color: "#999",
+              },
+            }}
           />
           <TextField
             fullWidth
             size="small"
             label={t.editListing.titleLabel}
             value={editForm.title}
-            onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))}
+            onChange={(e) =>
+              setEditForm((p) => ({ ...p, title: e.target.value }))
+            }
             sx={textFieldSx}
           />
-          <TextField
-            fullWidth
-            size="small"
-            label={t.editListing.resortCodesLabel}
-            value={editForm.resort_codes}
-            onChange={(e) => setEditForm((p) => ({ ...p, resort_codes: e.target.value }))}
-            sx={textFieldSx}
-          />
-          <TextField
-            fullWidth
-            size="small"
-            label={t.editListing.bedroomsLabel}
-            type="number"
-            value={editForm.bedrooms}
-            onChange={(e) => setEditForm((p) => ({ ...p, bedrooms: e.target.value }))}
-            slotProps={{ input: { inputProps: { min: 0 } } }}
-            sx={textFieldSx}
-          />
+          <Box
+            sx={{
+              display: "flex",
+              gap: 3,
+            }}
+          >
+            <TextField
+              fullWidth
+              size="small"
+              label={t.editListing.resortCodesLabel}
+              value={editForm.resort_codes}
+              onChange={(e) =>
+                setEditForm((p) => ({ ...p, resort_codes: e.target.value }))
+              }
+              sx={textFieldSx}
+            />
+            <TextField
+              fullWidth
+              size="small"
+              label={t.editListing.bedroomsLabel}
+              type="number"
+              value={editForm.bedrooms}
+              onChange={(e) =>
+                setEditForm((p) => ({ ...p, bedrooms: e.target.value }))
+              }
+              slotProps={{ input: { inputProps: { min: 0 } } }}
+              sx={textFieldSx}
+            />
+          </Box>
           <Button
             onClick={handleRequestDelete}
             variant="contained"
@@ -596,7 +700,11 @@ export const ListingTable = ({
           </Button>
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center" }}>
-          <Button onClick={handleRequestUpdate} variant="contained" sx={greenButtonSx}>
+          <Button
+            onClick={handleRequestUpdate}
+            variant="contained"
+            sx={greenButtonSx}
+          >
             {t.editListing.updateButton}
           </Button>
           <Button onClick={handleCloseEdit} sx={cancelButtonSx}>
@@ -618,7 +726,11 @@ export const ListingTable = ({
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center" }}>
-          <Button onClick={handleConfirmUpdate} variant="contained" sx={greenButtonSx}>
+          <Button
+            onClick={handleConfirmUpdate}
+            variant="contained"
+            sx={greenButtonSx}
+          >
             {t.editListing.confirmUpdateButton}
           </Button>
           <Button onClick={handleCancelUpdate} sx={cancelButtonSx}>
@@ -640,7 +752,11 @@ export const ListingTable = ({
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center" }}>
-          <Button onClick={handleConfirmDelete} variant="contained" sx={deleteButtonSx}>
+          <Button
+            onClick={handleConfirmDelete}
+            variant="contained"
+            sx={deleteButtonSx}
+          >
             {t.editListing.confirmDeleteButton}
           </Button>
           <Button onClick={handleCancelDelete} sx={cancelButtonSx}>
@@ -648,6 +764,13 @@ export const ListingTable = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      <IcalDatesModal
+        open={calendarDialog.open}
+        onClose={() => setCalendarDialog({ open: false, listingId: null })}
+        listingId={calendarDialog.listingId}
+        alertRef={alertRef}
+      />
     </Box>
   );
 };

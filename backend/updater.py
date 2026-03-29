@@ -53,12 +53,13 @@ def update_single_listing(listing_id):
     bedroom_filter = {listing_id: bedrooms}
 
     all_available = set()
+    manual = [tuple(r) for r in listing.get("manual_dates", [])] or None
 
     for resort_code in resort_codes:
         try:
             logger.info("Scraping %s para listing %s...", resort_code, listing_id)
             available = collect_available_dates(resort_code, listing_id, bedroom_filter)
-            available = apply_manual_extra_availability(listing_id, available)
+            available = apply_manual_extra_availability(listing_id, available, stored_manual_dates=manual)
             all_available.update(available)
             logger.info("%s: %d dias disponibles", resort_code, len(available))
         except Exception as e:

@@ -64,12 +64,17 @@ def sort_primary_listings_by_bedrooms(listings):
         return (group, lid)
     return sorted(listings, key=sort_key)
 
-def apply_manual_extra_availability(listing_id, available_dates):
+def apply_manual_extra_availability(listing_id, available_dates, stored_manual_dates=None):
     """
     Añade manualmente rangos de disponibilidad extra a la lista de available_dates
     usando la misma lógica que Interval (incluye start, excluye end).
+    Si stored_manual_dates tiene datos, los usa. Si no, fallback a MANUAL_EXTRA_AVAIL.
     """
-    ranges = MANUAL_EXTRA_AVAIL.get(listing_id)
+    if stored_manual_dates:
+        ranges = stored_manual_dates
+    else:
+        # Fallback: buscar en dict hardcodeado con string e int keys
+        ranges = MANUAL_EXTRA_AVAIL.get(str(listing_id)) or MANUAL_EXTRA_AVAIL.get(int(listing_id) if str(listing_id).isdigit() else listing_id)
     if not ranges:
         return available_dates
 

@@ -61,7 +61,8 @@
       "Read(//c/desenvolupament/AVI/backend/**)",
       "Bash(npm uninstall:*)",
       "Bash(pip install:*)",
-      "Bash(git -C c:/desarrollo/AVI status)"
+      "Bash(git -C c:/desarrollo/AVI status)",
+      "Bash(git -C c:/desarrollo/AVI status --short)"
     ],
     "additionalDirectories": [
       "C:\\desarrollo\\AVI"
