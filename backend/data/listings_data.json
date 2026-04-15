@@ -1,0 +1,1306 @@
+[
+  {
+    "listing_id": "1345857222392615050",
+    "resort_codes": [
+      "MRP"
+    ],
+    "bedrooms": "2",
+    "title": "Marriott Royal Palms 2BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-04-15T22:28:01.320899+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1344181796280915934",
+    "resort_codes": [
+      "WMH"
+    ],
+    "bedrooms": "2",
+    "title": "Westin Mission Hills 2BR Villa",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T18:38:44.304363+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1365430597465761069",
+    "resort_codes": [
+      "WMH"
+    ],
+    "bedrooms": "1",
+    "title": "The Westin Mission Hills Resort Villas 1BR",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T18:54:25.521289+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1355334576632115845",
+    "resort_codes": [
+      "WKV"
+    ],
+    "bedrooms": "2",
+    "title": "The Westin Kierland Villas 2BR",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T22:14:24.024610+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1327519044596129119",
+    "resort_codes": [
+      "WRB"
+    ],
+    "bedrooms": "1",
+    "title": "HVC Rustic Ozarks Lodge Retreat 1BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T22:16:45.010895+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1333392495650050673",
+    "resort_codes": [
+      "MRD",
+      "MR2"
+    ],
+    "bedrooms": "2",
+    "title": "Marriott Shadow Ridge Villa 2BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T20:57:12.980315+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1330412017984441903",
+    "resort_codes": [
+      "MRD",
+      "MR2"
+    ],
+    "bedrooms": "2",
+    "title": "Marriott Shadow Ridge Villa 2BD",
+    "sync_mode": "primary",
+    "last_updated": null,
+    "ical_enabled": false,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1334982180794136031",
+    "resort_codes": [
+      "MGC"
+    ],
+    "bedrooms": "2",
+    "title": "Marriott Grand 2 BD Las Vegas",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-29T15:28:19.156052+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1335082690541564040",
+    "resort_codes": [
+      "MSE",
+      "MMC"
+    ],
+    "bedrooms": "2",
+    "title": "Marriott's Manor Club 2 BD Villa",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T22:25:51.789125+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1336446490392126854",
+    "resort_codes": [
+      "MHB"
+    ],
+    "bedrooms": "2",
+    "title": "Marriott's Willow Ridge Lodge 2BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T22:29:09.743369+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1052827173267554299",
+    "resort_codes": [
+      "MPB"
+    ],
+    "bedrooms": "0",
+    "title": "Marriott Ocean Pointe Lux Studio",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T22:31:12.045640+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1326438193503001974",
+    "resort_codes": [
+      "RFR"
+    ],
+    "bedrooms": "0",
+    "title": "Oceanfront Getaway Studio",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T22:32:52.022993+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1326819228403756101",
+    "resort_codes": [
+      "MVF"
+    ],
+    "bedrooms": "2",
+    "title": "Elegant Villa Near Disneyland 2BD Villa",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T22:41:30.100990+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1337793465351149806",
+    "resort_codes": [
+      "MBP"
+    ],
+    "bedrooms": "1",
+    "title": "Marriott's BeachPlace Towers 1BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T22:45:36.241592+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1338417839362838918",
+    "resort_codes": [
+      "MBP"
+    ],
+    "bedrooms": "0",
+    "title": "Marriott's BeachPlace Towers Studio",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T22:48:47.092376+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1338417960362666583",
+    "resort_codes": [
+      "MOU"
+    ],
+    "bedrooms": "0",
+    "title": "Marriott's MountainSide Studio",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T22:51:04.944577+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1338437954598520207",
+    "resort_codes": [
+      "MVD"
+    ],
+    "bedrooms": "2",
+    "title": "Marriott's Villas at Doral 2BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T22:53:10.912961+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1340815865477332613",
+    "resort_codes": [
+      "MBY"
+    ],
+    "bedrooms": "2",
+    "title": "Marriott's Barony Beach Club 2BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T22:55:30.796791+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1340815874046518040",
+    "resort_codes": [
+      "MFV"
+    ],
+    "bedrooms": "2",
+    "title": "Marriott's Fairway Villas 2BR",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T22:57:21.294342+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1340815882419296634",
+    "resort_codes": [
+      "MGQ"
+    ],
+    "bedrooms": "0",
+    "title": "Marriott Vacation Club® at Surfers Paradise Studio",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T23:00:52.933863+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1340923800145366871",
+    "resort_codes": [
+      "MOW"
+    ],
+    "bedrooms": "2",
+    "title": "Marriott's OceanWatch at Grande Dunes 2BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T23:03:20.868589+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1340923806035574862",
+    "resort_codes": [
+      "VTA"
+    ],
+    "bedrooms": "1",
+    "title": "Sheraton Mountain Vista 1BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T23:04:57.189552+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1340923821341126860",
+    "resort_codes": [
+      "NCV"
+    ],
+    "bedrooms": "2",
+    "title": "Marriott's Newport Coast® Villas 2BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T23:07:09.084217+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1345291822018040863",
+    "resort_codes": [
+      "HSC"
+    ],
+    "bedrooms": "0",
+    "title": "Lux Hotel Sofitel Legend Santa Clara Studio",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T16:24:26.764190+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1345857201198067978",
+    "resort_codes": [
+      "MMS"
+    ],
+    "bedrooms": "2",
+    "title": "Marriott's Monarch 2BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T23:10:53.669277+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1345857211725433221",
+    "resort_codes": [
+      "WKV"
+    ],
+    "bedrooms": "1",
+    "title": "The Westin Kierland Villas 1 BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T23:12:12.841144+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1349419684275543755",
+    "resort_codes": [
+      "SRM"
+    ],
+    "bedrooms": "0",
+    "title": "Sheraton Steamboat Resort Villas Studio",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-26T00:28:57.046265+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1351659640335736029",
+    "resort_codes": [
+      "MVB"
+    ],
+    "bedrooms": "0",
+    "title": "Marriott Streamside Birch Studio",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T23:16:31.405325+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1351740874621529221",
+    "resort_codes": [
+      "MHH"
+    ],
+    "bedrooms": "2",
+    "title": "Marriott Harbour Club 2BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T23:18:53.746096+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1352510745697181913",
+    "resort_codes": [
+      "MSW"
+    ],
+    "bedrooms": "0",
+    "title": "Marriott's Summit Watch Studio",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T23:19:57.469730+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1358064537782998846",
+    "resort_codes": [
+      "MSW"
+    ],
+    "bedrooms": "1",
+    "title": "Marriott's Summit Watch 1BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T23:21:31.317067+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1352510752859992558",
+    "resort_codes": [
+      "WSJ"
+    ],
+    "bedrooms": "0",
+    "title": "The Westin St. John Resort Villas Studio",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T23:22:34.158083+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1358204618827267252",
+    "resort_codes": [
+      "WSJ"
+    ],
+    "bedrooms": "1",
+    "title": "The Westin St. John Resort Villas 1BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T23:31:15.626636+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1361852596317221483",
+    "resort_codes": [
+      "WSJ"
+    ],
+    "bedrooms": "2",
+    "title": "The Westin St. John Resort Villas 2BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T23:37:48.313502+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1361866974902755987",
+    "resort_codes": [
+      "WSJ"
+    ],
+    "bedrooms": "3",
+    "title": "The Westin St. John Resort Villas 3BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T19:57:02.047327+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1362654429618025557",
+    "resort_codes": [
+      "MMI"
+    ],
+    "bedrooms": "3",
+    "title": "Marriott’s Crystal Shores 3BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T19:55:24.163211+00:00",
+    "price_per_night": 0,
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1362667204288143659",
+    "resort_codes": [
+      "MEV",
+      "MVB",
+      "MDO"
+    ],
+    "bedrooms": "2",
+    "title": "Marriott Streamside Evergreen 2BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T23:39:29.077948+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1363184085041709737",
+    "resort_codes": [
+      "MIP"
+    ],
+    "bedrooms": "3",
+    "title": "Marriott Imperial Palms Villas 3BD",
+    "sync_mode": "primary",
+    "last_updated": null,
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1363901925683772924",
+    "resort_codes": [
+      "MVL"
+    ],
+    "bedrooms": "0",
+    "title": "Marriott's Mountain Valley Lodge Studio",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T23:42:04.638736+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1363914591356963894",
+    "resort_codes": [
+      "MVL"
+    ],
+    "bedrooms": "1",
+    "title": "Marriott's Mountain Valley Lodge 1BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T23:46:43.390912+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1363924499135818492",
+    "resort_codes": [
+      "MLE"
+    ],
+    "bedrooms": "2",
+    "title": "Marriott's Legends Edge at Bay Point 2BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T23:48:40.675623+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1340923814180253862",
+    "resort_codes": [
+      "MGA",
+      "MG1",
+      "MG3",
+      "MG5"
+    ],
+    "bedrooms": "0",
+    "title": "Marriott Grand Residence Club Lake Tahoe Studio",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T23:54:17.549735+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1449307455202934831",
+    "resort_codes": [
+      "HEC"
+    ],
+    "bedrooms": "0",
+    "title": "Relaxing Encanto Studio",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-22T23:57:02.322739+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1342282445738205135",
+    "resort_codes": [
+      "MGA",
+      "MG1",
+      "MG3",
+      "MG5"
+    ],
+    "bedrooms": "1",
+    "title": "Marriott Grand Residence Club1BD",
+    "sync_mode": "primary",
+    "last_updated": null,
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1098594949186974730",
+    "resort_codes": [
+      "MGV",
+      "MGR"
+    ],
+    "bedrooms": "0",
+    "title": "Luxury Studio at Marriott's Grande",
+    "sync_mode": "primary",
+    "last_updated": null,
+    "ical_enabled": false,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1142004991848222683",
+    "resort_codes": [
+      "MPD",
+      "MDS"
+    ],
+    "bedrooms": "0",
+    "title": "Marriott's Desert Springs Lux Studio",
+    "sync_mode": "primary",
+    "last_updated": null,
+    "ical_enabled": false,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1335526761664013136",
+    "resort_codes": [
+      "MHB"
+    ],
+    "bedrooms": "0",
+    "title": "Marriott's Willow Ridge Lodge Studio",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T01:18:41.117920+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1214474871383180830",
+    "resort_codes": [
+      "SVV"
+    ],
+    "bedrooms": "1",
+    "title": "Sheraton Vistana Villages 1BR",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T01:20:18.389333+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1330585189052790152",
+    "resort_codes": [
+      "MCV"
+    ],
+    "bedrooms": "0",
+    "title": "Marriott Canyon Studio",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T01:25:17.800778+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1330709242216924589",
+    "resort_codes": [
+      "MCV"
+    ],
+    "bedrooms": "1",
+    "title": "Marriott Canyon 1BR",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T01:25:53.675283+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1348054833142358701",
+    "resort_codes": [
+      "MGC"
+    ],
+    "bedrooms": "1",
+    "title": "Marriott Grand 1BD Las Vegas",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-29T16:37:12.473775+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1335030322885419533",
+    "resort_codes": [
+      "MSE",
+      "MMC"
+    ],
+    "bedrooms": "0",
+    "title": "Marriott's Manor Club Studio",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T01:27:05.158400+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1335743920011776200",
+    "resort_codes": [
+      "MRD",
+      "MR2"
+    ],
+    "bedrooms": "0",
+    "title": "Marriott Shadow Ridge Studio",
+    "sync_mode": "primary",
+    "last_updated": null,
+    "ical_enabled": false,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1335827297496084732",
+    "resort_codes": [
+      "MHB"
+    ],
+    "bedrooms": "1",
+    "title": "Marriott's Willow Ridge Lodge 1BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T01:30:36.354528+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1336278837712389950",
+    "resort_codes": [
+      "MSE",
+      "MMC"
+    ],
+    "bedrooms": "1",
+    "title": "Marriott's Manor Club 1 BD Villa",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T01:32:25.076581+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1337793486011074259",
+    "resort_codes": [
+      "MML"
+    ],
+    "bedrooms": "1",
+    "title": "Marriott's Timber Lodge 1BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T01:34:50.390805+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1338418199551684040",
+    "resort_codes": [
+      "MML"
+    ],
+    "bedrooms": "0",
+    "title": "Marriott's Timber Lodge Studio",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T01:37:00.883317+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1345857192365428845",
+    "resort_codes": [
+      "MSP"
+    ],
+    "bedrooms": "2",
+    "title": "Marriott Sabal Palms 2BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T01:38:01.532035+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1412324647773953644",
+    "resort_codes": [
+      "MPD",
+      "MDS"
+    ],
+    "bedrooms": "1",
+    "title": "Marriott's Desert Springs Lux 1bd APT",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T01:42:10.997931+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1352510762519325395",
+    "resort_codes": [
+      "MCP"
+    ],
+    "bedrooms": "2",
+    "title": "Marriott Cypress Harbour 2BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T01:43:46.342004+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1352512148868362547",
+    "resort_codes": [
+      "MDO",
+      "MVB",
+      "MEV"
+    ],
+    "bedrooms": "1",
+    "title": "Marriott's StreamSide Douglas at vail 1BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T01:45:16.056243+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1358212668397702633",
+    "resort_codes": [
+      "MDO",
+      "MVB",
+      "MEV"
+    ],
+    "bedrooms": "2",
+    "title": "Marriott's StreamSide Douglas at vail 2BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T01:46:59.532736+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1356752907695434604",
+    "resort_codes": [
+      "MRD"
+    ],
+    "bedrooms": "1",
+    "title": "Marriott's Shadow Ridge Villages 1BD",
+    "sync_mode": "primary",
+    "last_updated": null,
+    "ical_enabled": false,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1357305285827607376",
+    "resort_codes": [
+      "MGK"
+    ],
+    "bedrooms": "1",
+    "title": "Marriott Lakeshore Reserve Luxury 1BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T17:28:46.661898+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1358059971830126627",
+    "resort_codes": [
+      "MGK"
+    ],
+    "bedrooms": "2",
+    "title": "Marriott Lakeshore Reserve Luxury 2BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T01:54:19.669416+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1379263354536523534",
+    "resort_codes": [
+      "FAP"
+    ],
+    "bedrooms": "0",
+    "title": "Falcon Point Studio",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T01:55:54.200634+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1281468416971763412",
+    "resort_codes": [
+      "MGV",
+      "MGR"
+    ],
+    "bedrooms": "2",
+    "title": "Lux 2BD Marriott Grande",
+    "sync_mode": "primary",
+    "last_updated": null,
+    "ical_enabled": false,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1442858914083850854",
+    "resort_codes": [
+      "RGT",
+      "RT2",
+      "RT1"
+    ],
+    "bedrooms": "0",
+    "title": "Studio at The Ridge Tahoe Lake Tahoe",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T01:58:13.746871+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1538490957844638640",
+    "resort_codes": [
+      "VIT"
+    ],
+    "bedrooms": "2",
+    "title": "Sheraton Vistana Resort 2BD",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T01:59:45.703187+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1351659648005730451",
+    "title": "Marriott Lakeshore Reserve Luxury Studio",
+    "resort_codes": [
+      "MGK"
+    ],
+    "bedrooms": "0",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T18:30:10.296720+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1358196399757692581",
+    "title": "Marriott Lakeshore Reserve Luxury 3 BD",
+    "resort_codes": [
+      "MGK"
+    ],
+    "bedrooms": "3",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T20:01:08.949812+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1355334567244774812",
+    "title": "Marriott's Monarch at Sea Pines 3BD",
+    "resort_codes": [
+      "MMS"
+    ],
+    "bedrooms": "3",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T20:05:51.342310+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1358049423787932354",
+    "title": "Sheraton Steamboat Resort 3BD",
+    "resort_codes": [
+      "SRM"
+    ],
+    "bedrooms": "3",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T20:11:06.157985+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1342282617933647071",
+    "title": "Marriott Grand Residence Club2BD",
+    "resort_codes": [
+      "MGA",
+      "MG1",
+      "MG3",
+      "MG5"
+    ],
+    "bedrooms": "2",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T20:15:17.545437+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1337857043004100372",
+    "title": "Marriott's BeachPlace Towers 2BD",
+    "resort_codes": [
+      "MBP"
+    ],
+    "bedrooms": "2",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T20:21:51.235847+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1371165791864588030",
+    "title": "Marriott's Shadow Ridge 1BD",
+    "resort_codes": [
+      "MRD"
+    ],
+    "bedrooms": "1",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T20:25:07.980188+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1345656546067227444",
+    "title": "Marriott's Desert Springs Studio",
+    "resort_codes": [
+      "MPD",
+      "MDS"
+    ],
+    "bedrooms": "0",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T20:28:01.207961+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1342268141814944942",
+    "title": "Marriott's Canyon 2BD",
+    "resort_codes": [
+      "MCV"
+    ],
+    "bedrooms": "2",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T20:30:46.240867+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1431519232450705625",
+    "title": "Marriott's Willow Ridge Studio",
+    "resort_codes": [
+      "MHB"
+    ],
+    "bedrooms": "0",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T20:43:02.462242+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1358053586653778576",
+    "title": "Marriott Streamside Birch 2BD",
+    "resort_codes": [
+      "MVB"
+    ],
+    "bedrooms": "2",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T20:47:10.635399+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1385888264985898361",
+    "title": "Moon Palace Cancún 1BD",
+    "resort_codes": [
+      "MPN"
+    ],
+    "bedrooms": "1",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T20:50:36.285179+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1337857279405467410",
+    "title": "Marriott's Timber Lodge 2BD",
+    "resort_codes": [
+      "MML"
+    ],
+    "bedrooms": "2",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T20:53:05.244139+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1337857153768652841",
+    "title": "Marriott's MountainSide 2BD",
+    "resort_codes": [
+      "MOU"
+    ],
+    "bedrooms": "2",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T21:00:34.244503+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1357304026665293701",
+    "title": "Sheraton Steamboat Resort Villas 2BD",
+    "resort_codes": [
+      "SRM"
+    ],
+    "bedrooms": "2",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-23T21:03:22.127847+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  },
+  {
+    "listing_id": "1334198805359959622",
+    "title": "Marriott Grand Las Vegas Studio",
+    "resort_codes": [
+      "MGC"
+    ],
+    "bedrooms": "0",
+    "sync_mode": "primary",
+    "last_updated": "2026-03-29T15:26:37.226447+00:00",
+    "ical_enabled": true,
+    "manual_dates": [],
+    "address": "",
+    "state": "",
+    "start_date": null
+  }
+]

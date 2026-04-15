@@ -6,7 +6,6 @@ frontend/dist/
 backend/.env
 
 # Generated data
-backend/data/
 backend/ics_files/
 
 # Chrome profile
