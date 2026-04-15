@@ -28,13 +28,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Crear directorios necesarios
-RUN mkdir -p /app/data /app/ics_files
+RUN mkdir -p /app/data/ics_files
 
-# Volumenes persistentes (Railway: montar en /app/data y /app/ics_files)
-VOLUME ["/app/data", "/app/ics_files"]
+# Volumen persistente (Railway: montar en /app/data)
+VOLUME ["/app/data"]
 
 ENV HEADLESS=true
-ENV ICS_OUTPUT_DIR=ics_files
 ENV AIRBNB_PROFILE_DIR=/tmp/avi_profile
 ENV PYTHONUNBUFFERED=1
 
