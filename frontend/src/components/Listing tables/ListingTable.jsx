@@ -125,6 +125,8 @@ export const ListingTable = ({
     title: "",
     resort_codes: "",
     bedrooms: "",
+    address: "",
+    state: "",
   });
   const [confirmUpdate, setConfirmUpdate] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -197,6 +199,8 @@ export const ListingTable = ({
       title: row.title || "",
       resort_codes: (row.resort_codes || []).join(", "),
       bedrooms: row.bedrooms || "0",
+      address: row.address || "",
+      state: row.state || "",
     });
   };
 
@@ -228,6 +232,8 @@ export const ListingTable = ({
           .map((c) => c.trim().toUpperCase())
           .filter(Boolean),
         bedrooms: editForm.bedrooms,
+        address: editForm.address.trim(),
+        state: editForm.state.trim(),
       }).unwrap();
       alertRef?.current?.showSuccess(t.editListing.updateSuccess);
       handleCloseEdit();
@@ -306,6 +312,15 @@ export const ListingTable = ({
       align: "center",
       headerAlign: "center",
       renderCell: (params) => bedroomLabel(params.value),
+    },
+    {
+      field: "state",
+      headerName: t.listingTable.state,
+      width: 150,
+      align: "center",
+      headerAlign: "center",
+      renderCell: (params) =>
+        params.value || <em style={{ color: "#999" }}>—</em>,
     },
     {
       field: "last_updated",
@@ -661,12 +676,7 @@ export const ListingTable = ({
             }
             sx={textFieldSx}
           />
-          <Box
-            sx={{
-              display: "flex",
-              gap: 3,
-            }}
-          >
+          <Box sx={{ display: "flex", gap: 3 }}>
             <TextField
               fullWidth
               size="small"
@@ -690,6 +700,28 @@ export const ListingTable = ({
               sx={textFieldSx}
             />
           </Box>
+          <TextField
+            fullWidth
+            size="small"
+            label={t.editListing.addressLabel}
+            placeholder={t.editListing.addressPlaceholder}
+            value={editForm.address}
+            onChange={(e) =>
+              setEditForm((p) => ({ ...p, address: e.target.value }))
+            }
+            sx={textFieldSx}
+          />
+          <TextField
+            fullWidth
+            size="small"
+            label={t.editListing.stateLabel}
+            placeholder={t.editListing.statePlaceholder}
+            value={editForm.state}
+            onChange={(e) =>
+              setEditForm((p) => ({ ...p, state: e.target.value }))
+            }
+            sx={textFieldSx}
+          />
           <Button
             onClick={handleRequestDelete}
             variant="contained"

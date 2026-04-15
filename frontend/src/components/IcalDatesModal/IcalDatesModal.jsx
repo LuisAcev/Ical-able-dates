@@ -10,10 +10,30 @@ import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { PickersDay } from "@mui/x-date-pickers/PickersDay";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
 import dayjs from "dayjs";
+
+const greenPickerTheme = createTheme({
+  palette: { primary: { main: "#16A34A" } },
+  shape: { borderRadius: 24 },
+  components: {
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: { color: "#000000" },
+      },
+    },
+    MuiInputLabel: {
+      styleOverrides: { root: { color: "#555" } },
+    },
+    MuiSvgIcon: {
+      styleOverrides: { root: { color: "#555" } },
+    },
+  },
+});
 import { ListingCircularProgress } from "../ListingCircularProgress/ListingCircularProgress";
 import {
   useGetListingDatesQuery,
@@ -85,14 +105,16 @@ export const IcalDatesModal = ({ open, onClose, listingId, alertRef }) => {
   const [regenerateIcal] = useRegenerateIcalMutation();
 
   const [localManual, setLocalManual] = useState([]);
+  const [localStartDate, setLocalStartDate] = useState(null);
   const [pendingDate, setPendingDate] = useState(null);
-  const [confirmAction, setConfirmAction] = useState(null); // "save" | "regenerate" | null
+  const [confirmAction, setConfirmAction] = useState(null);
 
   useEffect(() => {
-    if (data?.manual_dates) {
-      setLocalManual(data.manual_dates);
+    if (data) {
+      setLocalManual(data.manual_dates ?? []);
+      setLocalStartDate(data.start_date ? dayjs(data.start_date) : null);
     }
-  }, [data?.manual_dates]);
+  }, [data]);
 
   useEffect(() => {
     if (!open) {
@@ -156,7 +178,11 @@ export const IcalDatesModal = ({ open, onClose, listingId, alertRef }) => {
   const handleConfirmAction = async () => {
     setConfirmAction(null);
     try {
-      await saveManualDates({ listingId, manual_dates: localManual }).unwrap();
+      await saveManualDates({
+        listingId,
+        manual_dates: localManual,
+        start_date: localStartDate ? localStartDate.format("YYYY-MM-DD") : null,
+      }).unwrap();
       await regenerateIcal(listingId).unwrap();
       alertRef?.current?.showSuccess(t.icalDates.saveSuccess);
     } catch {
@@ -190,32 +216,32 @@ export const IcalDatesModal = ({ open, onClose, listingId, alertRef }) => {
         )}
 
         {data && !isLoading && (
-          <>
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DateCalendar
-                minDate={minDate}
-                maxDate={maxDate}
-                onChange={handleDayClick}
-                slots={{
-                  day: (props) => (
-                    <CustomDay
-                      {...props}
-                      blockedSet={blockedSet}
-                      availableSet={availableSet}
-                      manualSet={manualSet}
-                      pendingDate={pendingDate}
-                    />
-                  ),
-                }}
-                sx={{
-                  width: "100%",
-                  "& .MuiPickersCalendarHeader-root": { color: "#E0E0E0" },
-                  "& .MuiDayCalendar-weekDayLabel": { color: "#E0E0E0" },
-                  "& .MuiPickersArrowSwitcher-button": { color: "#E0E0E0" },
-                  "& .MuiPickersCalendarHeader-label": { color: "#E0E0E0" },
-                }}
-              />
-            </LocalizationProvider>
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <>
+              <Box sx={{ display: "flex", justifyContent: "center" }}>
+                <DateCalendar
+                  minDate={minDate}
+                  maxDate={maxDate}
+                  onChange={handleDayClick}
+                  slots={{
+                    day: (props) => (
+                      <CustomDay
+                        {...props}
+                        blockedSet={blockedSet}
+                        availableSet={availableSet}
+                        manualSet={manualSet}
+                        pendingDate={pendingDate}
+                      />
+                    ),
+                  }}
+                  sx={{
+                    "& .MuiPickersCalendarHeader-root": { color: "#E0E0E0" },
+                    "& .MuiDayCalendar-weekDayLabel": { color: "#E0E0E0" },
+                    "& .MuiPickersArrowSwitcher-button": { color: "#E0E0E0" },
+                    "& .MuiPickersCalendarHeader-label": { color: "#E0E0E0" },
+                  }}
+                />
+              </Box>
 
             {/* Leyenda */}
             <Box sx={{ display: "flex", gap: 2, justifyContent: "center", mt: 1, flexWrap: "wrap" }}>
@@ -237,6 +263,63 @@ export const IcalDatesModal = ({ open, onClose, listingId, alertRef }) => {
                   <Typography variant="caption" sx={{ color: "#ffa726" }}>{t.icalDates.legendPending}</Typography>
                 </Box>
               )}
+            </Box>
+
+            {/* Fecha de inicio del iCal */}
+            <Box sx={{ mt: 2, mb: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <Typography variant="subtitle2" sx={{ color: "#E0E0E0", mb: 1, marginLeft:'-5rem' }}>
+                {t.icalDates.startDateTitle}
+              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                  <ThemeProvider theme={greenPickerTheme}>
+                    <DatePicker
+                      label={t.icalDates.startDateLabel}
+                      value={localStartDate}
+                      onChange={(val) => setLocalStartDate(val)}
+                      minDate={minDate}
+                      maxDate={maxDate}
+                      slotProps={{
+                        textField: {
+                          size: "small",
+                          sx: {
+                            width: 180,
+                            backgroundColor: "#E0E0E0",
+                            borderRadius: "24px",
+                            "& .MuiInputLabel-root.Mui-focused": {
+                              color: "#16A34A",
+                              fontWeight: 600,
+                            },
+                          },
+                        },
+                        desktopPaper: {
+                          sx: {
+                            borderRadius: "1rem",
+                            "& .MuiPickersDay-root:not(.Mui-selected)": { color: "#000" },
+                            "& .MuiPickersCalendarHeader-label": { color: "#000" },
+                            "& .MuiPickersArrowSwitcher-button": { color: "#000" },
+                            "& .MuiDayCalendar-weekDayLabel": { color: "#555" },
+                          },
+                        },
+                      }}
+                    />
+                  </ThemeProvider>
+                <Button
+                  size="small"
+                  onClick={() => setLocalStartDate(null)}
+                  sx={{
+                    color: "#ef9a9a",
+                    borderRadius: "1rem",
+                    textTransform: "none",
+                    whiteSpace: "nowrap",
+                    visibility: localStartDate ? "visible" : "hidden",
+                  }}
+                >
+                  {t.icalDates.startDateClear}
+                </Button>
+              </Box>
+              <Typography variant="caption" sx={{ color: "#777", mt: 0.5 }}>
+                {t.icalDates.startDateHelper}
+              </Typography>
             </Box>
 
             {/* Rangos manuales */}
@@ -265,7 +348,8 @@ export const IcalDatesModal = ({ open, onClose, listingId, alertRef }) => {
                 ))}
               </Box>
             )}
-          </>
+            </>
+          </LocalizationProvider>
         )}
       </DialogContent>
       <DialogActions sx={{ justifyContent: "center", pb: 2 }}>

@@ -9,7 +9,7 @@ y generate_ics_for_listing de ical_gen.py.
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +17,22 @@ from config import DATE_RANGE_START, DATE_RANGE_END
 from allin import collect_available_dates, apply_manual_extra_availability
 from ical_gen import generate_ics_for_listing
 from storage import load_listings, get_listing, update_timestamp
+
+
+def _effective_start(listing):
+    """Retorna la fecha de inicio efectiva para el iCal del listing.
+
+    Si el listing tiene start_date configurado y es posterior a DATE_RANGE_START,
+    usa esa fecha. De lo contrario usa el global DATE_RANGE_START.
+    """
+    raw = listing.get("start_date")
+    if not raw:
+        return DATE_RANGE_START
+    try:
+        candidate = datetime.strptime(raw, "%Y-%m-%d")
+        return candidate if candidate > DATE_RANGE_START else DATE_RANGE_START
+    except ValueError:
+        return DATE_RANGE_START
 
 
 def update_single_listing(listing_id):
@@ -65,8 +81,9 @@ def update_single_listing(listing_id):
         except Exception as e:
             logger.exception("Error scraping %s: %s", resort_code, e)
 
-    available_sorted = sorted(all_available)
-    generate_ics_for_listing(listing_id, available_sorted, DATE_RANGE_START, DATE_RANGE_END)
+    ical_start = _effective_start(listing)
+    available_sorted = sorted(d for d in all_available if d >= ical_start.strftime("%Y-%m-%d"))
+    generate_ics_for_listing(listing_id, available_sorted, ical_start, DATE_RANGE_END)
     ts = update_timestamp(listing_id)
 
     return {

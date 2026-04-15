@@ -39,6 +39,8 @@ const initialForm = {
   title: "",
   resort_codes: "",
   bedrooms: "0",
+  address: "",
+  state: "",
 };
 
 export const AddListing = ({ alertRef }) => {
@@ -89,6 +91,8 @@ export const AddListing = ({ alertRef }) => {
         title: form.title.trim(),
         resort_codes: resortCodes,
         bedrooms: form.bedrooms,
+        address: form.address.trim(),
+        state: form.state.trim(),
       }).unwrap();
       alertRef?.current?.showSuccess(t.addListing.createSuccess);
     } catch (err) {
@@ -138,12 +142,7 @@ export const AddListing = ({ alertRef }) => {
             onChange={updateField("title")}
             sx={textFieldSx}
           />
-          <Box
-            sx={{
-              display: "flex",
-              gap: 3,
-            }}
-          >
+          <Box sx={{ display: "flex", gap: 3 }}>
             <TextField
               fullWidth
               size="small"
@@ -171,6 +170,24 @@ export const AddListing = ({ alertRef }) => {
               ))}
             </TextField>
           </Box>
+          <TextField
+            fullWidth
+            size="small"
+            label={t.addListing.addressLabel}
+            placeholder={t.addListing.addressPlaceholder}
+            value={form.address}
+            onChange={updateField("address")}
+            sx={textFieldSx}
+          />
+          <TextField
+            fullWidth
+            size="small"
+            label={t.addListing.stateLabel}
+            placeholder={t.addListing.statePlaceholder}
+            value={form.state}
+            onChange={updateField("state")}
+            sx={textFieldSx}
+          />
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center" }}>
           <Button

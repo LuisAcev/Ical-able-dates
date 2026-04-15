@@ -30,7 +30,8 @@ from ical_gen import parse_ics_file, generate_ics_for_listing
 from storage import (
     load_listings, upsert_listing, update_timestamp, delete_listing,
     build_initial_listings, get_listing, ensure_ical_enabled_field,
-    ensure_manual_dates_field, get_setting, save_setting,
+    ensure_manual_dates_field, ensure_address_state_fields, ensure_start_date_field,
+    get_setting, save_setting,
 )
 
 
@@ -41,6 +42,8 @@ async def lifespan(_app):
     build_initial_listings()
     ensure_ical_enabled_field()
     ensure_manual_dates_field()
+    ensure_address_state_fields()
+    ensure_start_date_field()
     yield
 
 
@@ -110,6 +113,8 @@ class ListingCreate(BaseModel):
     resort_codes: list[str] = []
     bedrooms: str = "0"
     sync_mode: str = "primary"
+    address: str = Field(default="", max_length=500)
+    state: str = Field(default="", max_length=100)
 
     @field_validator('resort_codes', mode='before')
     @classmethod
@@ -122,6 +127,8 @@ class ListingManualCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=500)
     resort_codes: list[str] = Field(..., min_length=1)
     bedrooms: str
+    address: str = Field(default="", max_length=500)
+    state: str = Field(default="", max_length=100)
 
     @field_validator('resort_codes', mode='before')
     @classmethod
@@ -136,6 +143,7 @@ class IcalBaseUrl(BaseModel):
 
 class ManualDatesUpdate(BaseModel):
     manual_dates: list[list[str]]
+    start_date: str | None = None
 
     @field_validator('manual_dates', mode='before')
     @classmethod
@@ -151,6 +159,18 @@ class ManualDatesUpdate(BaseModel):
                 raise ValueError(f'Fecha invalida: {pair}')
             if start >= end:
                 raise ValueError(f'start debe ser menor que end: {pair}')
+        return v
+
+    @field_validator('start_date', mode='before')
+    @classmethod
+    def validate_start_date(cls, v):
+        if v is None or v == "":
+            return None
+        from datetime import datetime as dt
+        try:
+            dt.strptime(v, "%Y-%m-%d")
+        except ValueError:
+            raise ValueError(f'start_date invalido: {v}. Formato esperado: YYYY-MM-DD')
         return v
 
 
@@ -297,6 +317,8 @@ def api_create_listing_manual(data: ListingManualCreate):
         "resort_codes": [code.strip().upper() for code in data.resort_codes],
         "bedrooms": data.bedrooms,
         "sync_mode": "primary",
+        "address": data.address.strip(),
+        "state": data.state.strip(),
         "last_updated": None,
         "ical_enabled": True,
     }
@@ -316,6 +338,8 @@ def api_update_listing_data(listing_id: str, data: ListingCreate):
     existing["resort_codes"] = data.resort_codes if data.resort_codes is not None else existing.get("resort_codes", [])
     existing["bedrooms"] = data.bedrooms if data.bedrooms is not None else existing.get("bedrooms", "0")
     existing["sync_mode"] = data.sync_mode if data.sync_mode is not None else existing.get("sync_mode", "primary")
+    existing["address"] = data.address.strip() if data.address is not None else existing.get("address", "")
+    existing["state"] = data.state.strip() if data.state is not None else existing.get("state", "")
     upsert_listing(existing)
     return {"message": "Listing actualizado", "listing": existing}
 
@@ -383,6 +407,7 @@ def api_get_listing_dates(listing_id: str):
         "blocked_dates": sorted(blocked_dates),
         "available_dates": available_dates,
         "manual_dates": existing.get("manual_dates", []),
+        "start_date": existing.get("start_date") or None,
     }
 
 
@@ -395,8 +420,13 @@ def api_save_manual_dates(listing_id: str, data: ManualDatesUpdate):
         raise HTTPException(status_code=404, detail="Listing no encontrado")
 
     existing["manual_dates"] = data.manual_dates
+    existing["start_date"] = data.start_date
     upsert_listing(existing)
-    return {"message": "Fechas manuales guardadas", "manual_dates": data.manual_dates}
+    return {
+        "message": "Fechas manuales guardadas",
+        "manual_dates": data.manual_dates,
+        "start_date": data.start_date,
+    }
 
 
 @app.post("/api/listings/{listing_id}/regenerate-ical")
@@ -413,7 +443,7 @@ def api_regenerate_ical(listing_id: str):
 
     blocked_dates = parse_ics_file(listing_id)
 
-    from datetime import timedelta
+    from datetime import timedelta, datetime as dt
     all_dates = set()
     cur = DATE_RANGE_START
     while cur <= DATE_RANGE_END:
@@ -426,7 +456,19 @@ def api_regenerate_ical(listing_id: str):
     manual = [tuple(r) for r in existing.get("manual_dates", [])] or None
     available_dates = apply_manual_extra_availability(listing_id, available_dates, stored_manual_dates=manual)
 
-    generate_ics_for_listing(listing_id, available_dates, DATE_RANGE_START, DATE_RANGE_END)
+    # Aplicar start_date del listing si esta configurado
+    raw_start = existing.get("start_date")
+    ical_start = DATE_RANGE_START
+    if raw_start:
+        try:
+            candidate = dt.strptime(raw_start, "%Y-%m-%d")
+            if candidate > DATE_RANGE_START:
+                ical_start = candidate
+        except ValueError:
+            pass
+
+    available_dates = [d for d in available_dates if d >= ical_start.strftime("%Y-%m-%d")]
+    generate_ics_for_listing(listing_id, available_dates, ical_start, DATE_RANGE_END)
     ts = update_timestamp(listing_id)
 
     return {"message": f"iCal regenerado para {listing_id}", "updated_at": ts}

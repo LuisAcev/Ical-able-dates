@@ -163,6 +163,35 @@ def ensure_ical_enabled_field():
             save_listings(listings)
 
 
+def ensure_address_state_fields():
+    """Agrega address='' y state='' a listings existentes que no tengan los campos."""
+    with _storage_lock:
+        listings = load_listings()
+        changed = False
+        for l in listings:
+            if "address" not in l:
+                l["address"] = ""
+                changed = True
+            if "state" not in l:
+                l["state"] = ""
+                changed = True
+        if changed:
+            save_listings(listings)
+
+
+def ensure_start_date_field():
+    """Agrega start_date=None a listings existentes que no tengan el campo."""
+    with _storage_lock:
+        listings = load_listings()
+        changed = False
+        for l in listings:
+            if "start_date" not in l:
+                l["start_date"] = None
+                changed = True
+        if changed:
+            save_listings(listings)
+
+
 def build_initial_listings():
     """
     Construye la lista inicial de listings a partir de listings.py
