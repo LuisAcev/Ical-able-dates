@@ -30,9 +30,6 @@ COPY . .
 # Crear directorios necesarios
 RUN mkdir -p /app/data/ics_files
 
-# Volumen persistente (Railway: montar en /app/data)
-VOLUME ["/app/data"]
-
 ENV HEADLESS=true
 ENV AIRBNB_PROFILE_DIR=/tmp/avi_profile
 ENV PYTHONUNBUFFERED=1
