@@ -11,6 +11,7 @@ Uso:
     python ical_server.py
 """
 
+import asyncio
 import logging
 import os
 import re
@@ -25,7 +26,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 import uvicorn
 
-from config import ICS_OUTPUT_DIR, ICAL_SERVER_HOST, ICAL_SERVER_PORT, CORS_ORIGINS, ICAL_BASE_URL, DATE_RANGE_START, DATE_RANGE_END
+from config import ICS_OUTPUT_DIR, ICAL_SERVER_HOST, ICAL_SERVER_PORT, CORS_ORIGINS, ICAL_BASE_URL, DATE_RANGE_START, DATE_RANGE_END, AUTO_UPDATE_HOURS
 from ical_gen import parse_ics_file, generate_ics_for_listing
 from storage import (
     load_listings, upsert_listing, update_timestamp, delete_listing,
@@ -33,6 +34,18 @@ from storage import (
     ensure_manual_dates_field, ensure_address_state_fields, ensure_start_date_field,
     get_setting, save_setting,
 )
+
+
+async def _auto_update_loop():
+    """Corre _run_update_all cada AUTO_UPDATE_HOURS horas."""
+    # Espera 60s antes del primer ciclo para que el servidor este listo
+    await asyncio.sleep(60)
+    loop = asyncio.get_running_loop()
+    while True:
+        logger.info("Auto-update: iniciando actualizacion programada...")
+        await loop.run_in_executor(None, _run_update_all)
+        logger.info("Auto-update: completada. Proxima en %d horas.", AUTO_UPDATE_HOURS)
+        await asyncio.sleep(AUTO_UPDATE_HOURS * 3600)
 
 
 @asynccontextmanager
@@ -44,7 +57,13 @@ async def lifespan(_app):
     ensure_manual_dates_field()
     ensure_address_state_fields()
     ensure_start_date_field()
+    task = asyncio.create_task(_auto_update_loop())
     yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
 
 
 app = FastAPI(title="AVI iCalendar Server", lifespan=lifespan)
