@@ -42,9 +42,18 @@ async def _auto_update_loop():
     await asyncio.sleep(60)
     loop = asyncio.get_running_loop()
     while True:
-        logger.info("Auto-update: iniciando actualizacion programada...")
-        await loop.run_in_executor(None, _run_update_all)
-        logger.info("Auto-update: completada. Proxima en %d horas.", AUTO_UPDATE_HOURS)
+        try:
+            logger.info("Auto-update: iniciando actualizacion programada...")
+            await asyncio.wait_for(
+                loop.run_in_executor(None, _run_update_all),
+                timeout=float(_TASK_TIMEOUT_SECONDS),
+            )
+            logger.info("Auto-update: completada. Proxima en %d horas.", AUTO_UPDATE_HOURS)
+        except asyncio.TimeoutError:
+            logger.warning("Auto-update: timeout de %ds alcanzado, liberando loop.", _TASK_TIMEOUT_SECONDS)
+            _set_status(updating=False, current_listing=None, error="Timeout de actualizacion")
+        except Exception as e:
+            logger.exception("Auto-update: error inesperado, reintentara en %dh: %s", AUTO_UPDATE_HOURS, e)
         await asyncio.sleep(AUTO_UPDATE_HOURS * 3600)
 
 
@@ -86,8 +95,8 @@ _update_status = {
     "error": None,
 }
 
-# Timeout de seguridad total: si toda la operacion tarda mas de 2h, la marca como terminada
-_TASK_TIMEOUT_SECONDS = 2 * 60 * 60
+# Timeout de seguridad total: 4h cubre 85 listings con reintentos (~3min/listing worst case)
+_TASK_TIMEOUT_SECONDS = 4 * 60 * 60
 
 def _start_safety_timeout():
     """Inicia un timer que libera el estado updating si se excede el timeout."""
@@ -509,8 +518,9 @@ def _run_update_single(listing_id):
             progress=0, total=1, error=None,
         )
 
-    timer = _start_safety_timeout()
+    timer = None
     try:
+        timer = _start_safety_timeout()
         from updater import update_single_listing
         result = update_single_listing(listing_id)
         _set_status(error=result.get("error"))
@@ -518,7 +528,8 @@ def _run_update_single(listing_id):
         logger.exception("Error en update_single: %s", e)
         _set_status(error="Error interno al actualizar listing")
     finally:
-        timer.cancel()
+        if timer is not None:
+            timer.cancel()
         _set_status(updating=False, current_listing=None, progress=1)
 
 
@@ -533,8 +544,9 @@ def _run_update_all():
             progress=0, total=len(listings), error=None,
         )
 
-    timer = _start_safety_timeout()
+    timer = None
     try:
+        timer = _start_safety_timeout()
         from updater import update_single_listing
         for i, listing in enumerate(listings):
             lid = listing["listing_id"]
@@ -549,7 +561,8 @@ def _run_update_all():
         logger.exception("Error en update_all: %s", e)
         _set_status(error="Error interno en actualizacion masiva")
     finally:
-        timer.cancel()
+        if timer is not None:
+            timer.cancel()
         _set_status(updating=False, current_listing=None)
 
 

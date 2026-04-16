@@ -72,14 +72,19 @@ def update_single_listing(listing_id):
     manual = [tuple(r) for r in listing.get("manual_dates", [])] or None
 
     for resort_code in resort_codes:
-        try:
-            logger.info("Scraping %s para listing %s...", resort_code, listing_id)
-            available = collect_available_dates(resort_code, listing_id, bedroom_filter)
-            available = apply_manual_extra_availability(listing_id, available, stored_manual_dates=manual)
-            all_available.update(available)
-            logger.info("%s: %d dias disponibles", resort_code, len(available))
-        except Exception as e:
-            logger.exception("Error scraping %s: %s", resort_code, e)
+        for attempt in range(2):
+            try:
+                logger.info("Scraping %s para listing %s (intento %d)...", resort_code, listing_id, attempt + 1)
+                available = collect_available_dates(resort_code, listing_id, bedroom_filter)
+                available = apply_manual_extra_availability(listing_id, available, stored_manual_dates=manual)
+                all_available.update(available)
+                logger.info("%s: %d dias disponibles", resort_code, len(available))
+                break
+            except Exception as e:
+                if attempt == 0:
+                    logger.warning("Error scraping %s, reintentando: %s", resort_code, e)
+                else:
+                    logger.error("Error scraping %s tras 2 intentos: %s", resort_code, e)
 
     ical_start = _effective_start(listing)
     available_sorted = sorted(d for d in all_available if d >= ical_start.strftime("%Y-%m-%d"))

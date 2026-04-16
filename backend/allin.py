@@ -22,6 +22,7 @@ from selenium.common.exceptions import TimeoutException
 
 from datetime import datetime, timedelta
 import logging
+import threading
 import time, re
 
 logger = logging.getLogger(__name__)
@@ -205,6 +206,12 @@ def create_driver():
     opts.add_argument("--disable-dev-shm-usage")
     opts.add_argument("--disable-gpu")
     opts.add_argument("--disable-extensions")
+    opts.add_argument("--disable-background-timer-throttling")
+    opts.add_argument("--disable-renderer-backgrounding")
+    opts.add_argument("--disable-backgrounding-occluded-windows")
+    opts.add_argument("--disable-ipc-flooding-protection")
+    opts.add_argument("--disable-crash-reporter")
+    opts.add_argument("--disable-breakpad")
     opts.add_argument("--log-level=3")
     opts.add_experimental_option("excludeSwitches", ["enable-logging"])
     import subprocess
@@ -577,10 +584,21 @@ def collect_available_dates(resort_code, listing_id, bedroom_filter):
         available_dates = parse_availability_from_block(block, listing_id, bedroom_filter)
         return list(sorted(set(available_dates)))
     finally:
-        try:
-            driver.quit()
-        except Exception as e:
-            logger.warning("Error cerrando driver: %s", e)
+        def _quit_driver():
+            try:
+                driver.quit()
+            except Exception as e:
+                logger.warning("Error cerrando driver: %s", e)
+        t = threading.Thread(target=_quit_driver, daemon=True)
+        t.start()
+        t.join(timeout=10)
+        if t.is_alive():
+            logger.warning("driver.quit() no respondio en 10s, forzando cierre de Chrome")
+            try:
+                if hasattr(driver, 'service') and hasattr(driver.service, 'process') and driver.service.process:
+                    driver.service.process.kill()
+            except Exception:
+                pass
 
 # ================== MAIN ==================
 def main():
