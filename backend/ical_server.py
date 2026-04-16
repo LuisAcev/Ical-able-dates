@@ -16,7 +16,6 @@ import logging
 import os
 import re
 import threading
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 
 logger = logging.getLogger(__name__)
 from contextlib import asynccontextmanager
@@ -89,8 +88,6 @@ _update_status = {
 
 # Timeout de seguridad total: si toda la operacion tarda mas de 2h, la marca como terminada
 _TASK_TIMEOUT_SECONDS = 2 * 60 * 60
-# Timeout por listing individual: si un listing no termina en 2 min, se salta
-_PER_LISTING_TIMEOUT = 2 * 60
 
 def _start_safety_timeout():
     """Inicia un timer que libera el estado updating si se excede el timeout."""
@@ -539,19 +536,15 @@ def _run_update_all():
     timer = _start_safety_timeout()
     try:
         from updater import update_single_listing
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            for i, listing in enumerate(listings):
-                lid = listing["listing_id"]
-                _set_status(current_listing=lid, progress=i + 1)
-                if not listing.get("ical_enabled", True):
-                    continue
-                try:
-                    future = executor.submit(update_single_listing, lid)
-                    future.result(timeout=_PER_LISTING_TIMEOUT)
-                except FuturesTimeoutError:
-                    logger.warning("Timeout en listing %s tras %ds, saltando...", lid, _PER_LISTING_TIMEOUT)
-                except Exception as e:
-                    logger.error("Error updating %s: %s", lid, e)
+        for i, listing in enumerate(listings):
+            lid = listing["listing_id"]
+            _set_status(current_listing=lid, progress=i + 1)
+            if not listing.get("ical_enabled", True):
+                continue
+            try:
+                update_single_listing(lid)
+            except Exception as e:
+                logger.error("Error updating %s: %s", lid, e)
     except Exception as e:
         logger.exception("Error en update_all: %s", e)
         _set_status(error="Error interno en actualizacion masiva")

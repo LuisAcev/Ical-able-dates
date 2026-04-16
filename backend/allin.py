@@ -200,8 +200,14 @@ def create_driver():
         opts.add_argument("--window-size=1920,1080")
     else:
         opts.add_argument("--start-maximized")
-    service = Service()
-    return webdriver.Chrome(service=service, options=opts)
+    opts.add_argument("--log-level=3")
+    opts.add_experimental_option("excludeSwitches", ["enable-logging"])
+    import subprocess
+    service = Service(log_output=subprocess.DEVNULL)
+    driver = webdriver.Chrome(service=service, options=opts)
+    driver.set_page_load_timeout(60)
+    driver.set_script_timeout(30)
+    return driver
 
 def dismiss_cookie_banner(driver):
     try:
