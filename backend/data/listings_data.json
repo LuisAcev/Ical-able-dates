@@ -7,12 +7,13 @@
     "bedrooms": "2",
     "title": "Marriott Royal Palms 2BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:35:20.904788+00:00",
+    "last_updated": "2026-04-16T22:57:03.759523+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1344181796280915934",
@@ -22,12 +23,13 @@
     "bedrooms": "2",
     "title": "Westin Mission Hills 2BR Villa",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:35:47.790407+00:00",
+    "last_updated": "2026-04-16T22:57:03.777942+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1365430597465761069",
@@ -37,12 +39,13 @@
     "bedrooms": "1",
     "title": "The Westin Mission Hills Resort Villas 1BR",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:36:13.784419+00:00",
+    "last_updated": "2026-04-16T22:57:03.796232+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1355334576632115845",
@@ -52,12 +55,13 @@
     "bedrooms": "2",
     "title": "The Westin Kierland Villas 2BR",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:36:41.618254+00:00",
+    "last_updated": "2026-04-16T22:57:03.813764+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1327519044596129119",
@@ -67,12 +71,13 @@
     "bedrooms": "1",
     "title": "HVC Rustic Ozarks Lodge Retreat 1BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:37:11.804422+00:00",
+    "last_updated": "2026-04-16T22:57:03.830453+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1333392495650050673",
@@ -83,12 +88,13 @@
     "bedrooms": "2",
     "title": "Marriott Shadow Ridge Villa 2BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:38:12.140025+00:00",
+    "last_updated": "2026-04-16T22:57:03.849692+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1330412017984441903",
@@ -104,7 +110,8 @@
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": null
   },
   {
     "listing_id": "1334982180794136031",
@@ -114,12 +121,13 @@
     "bedrooms": "2",
     "title": "Marriott Grand 2 BD Las Vegas",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:38:39.546815+00:00",
+    "last_updated": "2026-04-16T22:57:03.866026+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1335082690541564040",
@@ -130,12 +138,13 @@
     "bedrooms": "2",
     "title": "Marriott's Manor Club 2 BD Villa",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:39:36.109463+00:00",
+    "last_updated": "2026-04-16T22:57:03.885014+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1336446490392126854",
@@ -145,12 +154,13 @@
     "bedrooms": "2",
     "title": "Marriott's Willow Ridge Lodge 2BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:40:06.241180+00:00",
+    "last_updated": "2026-04-16T22:57:03.901361+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1052827173267554299",
@@ -160,12 +170,13 @@
     "bedrooms": "0",
     "title": "Marriott Ocean Pointe Lux Studio",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:40:51.274115+00:00",
+    "last_updated": "2026-04-16T22:57:03.917905+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1326438193503001974",
@@ -175,12 +186,13 @@
     "bedrooms": "0",
     "title": "Oceanfront Getaway Studio",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:41:17.505812+00:00",
+    "last_updated": "2026-04-16T22:57:03.936569+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1326819228403756101",
@@ -190,12 +202,13 @@
     "bedrooms": "2",
     "title": "Elegant Villa Near Disneyland 2BD Villa",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:41:44.162232+00:00",
+    "last_updated": "2026-04-16T22:57:03.953559+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1337793465351149806",
@@ -205,12 +218,13 @@
     "bedrooms": "1",
     "title": "Marriott's BeachPlace Towers 1BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:42:10.219968+00:00",
+    "last_updated": "2026-04-16T22:57:03.970902+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1338417839362838918",
@@ -220,12 +234,13 @@
     "bedrooms": "0",
     "title": "Marriott's BeachPlace Towers Studio",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:42:46.275878+00:00",
+    "last_updated": "2026-04-16T22:57:03.987743+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1338417960362666583",
@@ -235,12 +250,13 @@
     "bedrooms": "0",
     "title": "Marriott's MountainSide Studio",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:43:36.216919+00:00",
+    "last_updated": "2026-04-16T22:57:04.004421+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1338437954598520207",
@@ -250,12 +266,13 @@
     "bedrooms": "2",
     "title": "Marriott's Villas at Doral 2BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:44:00.106163+00:00",
+    "last_updated": "2026-04-16T22:57:04.021522+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1340815865477332613",
@@ -265,12 +282,13 @@
     "bedrooms": "2",
     "title": "Marriott's Barony Beach Club 2BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:44:41.732506+00:00",
+    "last_updated": "2026-04-16T22:57:04.038053+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1340815874046518040",
@@ -280,12 +298,13 @@
     "bedrooms": "2",
     "title": "Marriott's Fairway Villas 2BR",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:45:08.671651+00:00",
+    "last_updated": "2026-04-16T22:57:04.057280+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1340815882419296634",
@@ -295,12 +314,13 @@
     "bedrooms": "0",
     "title": "Marriott Vacation Club® at Surfers Paradise Studio",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:45:34.996316+00:00",
+    "last_updated": "2026-04-16T22:57:04.075505+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1340923800145366871",
@@ -310,12 +330,13 @@
     "bedrooms": "2",
     "title": "Marriott's OceanWatch at Grande Dunes 2BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:46:16.854921+00:00",
+    "last_updated": "2026-04-16T22:57:04.092140+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1340923806035574862",
@@ -325,12 +346,13 @@
     "bedrooms": "1",
     "title": "Sheraton Mountain Vista 1BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:46:43.304079+00:00",
+    "last_updated": "2026-04-16T22:57:04.109742+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1340923821341126860",
@@ -340,12 +362,13 @@
     "bedrooms": "2",
     "title": "Marriott's Newport Coast® Villas 2BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:47:23.743821+00:00",
+    "last_updated": "2026-04-16T22:57:04.127454+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1345291822018040863",
@@ -355,12 +378,13 @@
     "bedrooms": "0",
     "title": "Lux Hotel Sofitel Legend Santa Clara Studio",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:47:47.862966+00:00",
+    "last_updated": "2026-04-16T22:57:04.145470+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1345857201198067978",
@@ -370,12 +394,13 @@
     "bedrooms": "2",
     "title": "Marriott's Monarch 2BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:48:29.283266+00:00",
+    "last_updated": "2026-04-16T22:57:04.163738+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1345857211725433221",
@@ -385,12 +410,13 @@
     "bedrooms": "1",
     "title": "The Westin Kierland Villas 1 BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:49:00.136991+00:00",
+    "last_updated": "2026-04-16T22:57:04.182516+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1349419684275543755",
@@ -400,12 +426,13 @@
     "bedrooms": "0",
     "title": "Sheraton Steamboat Resort Villas Studio",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:49:26.831456+00:00",
+    "last_updated": "2026-04-16T22:57:04.201666+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1351659640335736029",
@@ -415,12 +442,13 @@
     "bedrooms": "0",
     "title": "Marriott Streamside Birch Studio",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:49:52.994183+00:00",
+    "last_updated": "2026-04-16T22:57:04.220660+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1351740874621529221",
@@ -430,12 +458,13 @@
     "bedrooms": "2",
     "title": "Marriott Harbour Club 2BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T04:40:58.365652+00:00",
+    "last_updated": "2026-04-16T22:57:04.239727+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1352510745697181913",
@@ -445,12 +474,13 @@
     "bedrooms": "0",
     "title": "Marriott's Summit Watch Studio",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T04:41:39.109495+00:00",
+    "last_updated": "2026-04-16T22:57:04.259222+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1358064537782998846",
@@ -460,12 +490,13 @@
     "bedrooms": "1",
     "title": "Marriott's Summit Watch 1BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T04:42:19.319072+00:00",
+    "last_updated": "2026-04-16T22:57:04.279207+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1352510752859992558",
@@ -475,12 +506,13 @@
     "bedrooms": "0",
     "title": "The Westin St. John Resort Villas Studio",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T04:42:57.836169+00:00",
+    "last_updated": "2026-04-16T22:57:04.299204+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1358204618827267252",
@@ -490,12 +522,13 @@
     "bedrooms": "1",
     "title": "The Westin St. John Resort Villas 1BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T04:43:35.666041+00:00",
+    "last_updated": "2026-04-16T22:57:04.318982+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1361852596317221483",
@@ -505,12 +538,13 @@
     "bedrooms": "2",
     "title": "The Westin St. John Resort Villas 2BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T04:44:14.925957+00:00",
+    "last_updated": "2026-04-16T22:57:04.339034+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1361866974902755987",
@@ -520,12 +554,13 @@
     "bedrooms": "3",
     "title": "The Westin St. John Resort Villas 3BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T04:44:52.395250+00:00",
+    "last_updated": "2026-04-16T22:57:04.359194+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1362654429618025557",
@@ -535,13 +570,14 @@
     "bedrooms": "3",
     "title": "Marriott’s Crystal Shores 3BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T04:45:34.324591+00:00",
+    "last_updated": "2026-04-16T22:57:04.379838+00:00",
     "price_per_night": 0,
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1362667204288143659",
@@ -553,12 +589,13 @@
     "bedrooms": "2",
     "title": "Marriott Streamside Evergreen 2BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T04:47:28.641848+00:00",
+    "last_updated": "2026-04-16T22:57:04.404333+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1363184085041709737",
@@ -568,12 +605,13 @@
     "bedrooms": "3",
     "title": "Marriott Imperial Palms Villas 3BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T04:48:06.839560+00:00",
+    "last_updated": "2026-04-16T22:57:04.422556+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1363901925683772924",
@@ -583,12 +621,13 @@
     "bedrooms": "0",
     "title": "Marriott's Mountain Valley Lodge Studio",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T04:48:44.542399+00:00",
+    "last_updated": "2026-04-16T22:57:04.441466+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1363914591356963894",
@@ -598,12 +637,13 @@
     "bedrooms": "1",
     "title": "Marriott's Mountain Valley Lodge 1BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T04:49:21.800662+00:00",
+    "last_updated": "2026-04-16T22:57:04.460092+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1363924499135818492",
@@ -613,12 +653,13 @@
     "bedrooms": "2",
     "title": "Marriott's Legends Edge at Bay Point 2BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T04:49:58.795725+00:00",
+    "last_updated": "2026-04-16T22:57:04.477916+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1340923814180253862",
@@ -631,12 +672,13 @@
     "bedrooms": "0",
     "title": "Marriott Grand Residence Club Lake Tahoe Studio",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T04:52:33.335849+00:00",
+    "last_updated": "2026-04-16T22:57:04.502506+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1449307455202934831",
@@ -646,12 +688,13 @@
     "bedrooms": "0",
     "title": "Relaxing Encanto Studio",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T04:53:11.079367+00:00",
+    "last_updated": "2026-04-16T22:57:04.519423+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1342282445738205135",
@@ -664,12 +707,13 @@
     "bedrooms": "1",
     "title": "Marriott Grand Residence Club1BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T04:55:41.476155+00:00",
+    "last_updated": "2026-04-16T22:57:04.543630+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1098594949186974730",
@@ -685,7 +729,8 @@
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": null
   },
   {
     "listing_id": "1142004991848222683",
@@ -701,7 +746,8 @@
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": null
   },
   {
     "listing_id": "1335526761664013136",
@@ -711,12 +757,13 @@
     "bedrooms": "0",
     "title": "Marriott's Willow Ridge Lodge Studio",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T04:56:19.172130+00:00",
+    "last_updated": "2026-04-16T22:57:04.562475+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1214474871383180830",
@@ -726,12 +773,13 @@
     "bedrooms": "1",
     "title": "Sheraton Vistana Villages 1BR",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T04:56:57.167301+00:00",
+    "last_updated": "2026-04-16T22:57:04.580618+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1330585189052790152",
@@ -741,12 +789,13 @@
     "bedrooms": "0",
     "title": "Marriott Canyon Studio",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T04:57:34.990170+00:00",
+    "last_updated": "2026-04-16T22:57:04.598469+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1330709242216924589",
@@ -756,12 +805,13 @@
     "bedrooms": "1",
     "title": "Marriott Canyon 1BR",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T04:58:12.588667+00:00",
+    "last_updated": "2026-04-16T22:57:04.618698+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1348054833142358701",
@@ -771,12 +821,13 @@
     "bedrooms": "1",
     "title": "Marriott Grand 1BD Las Vegas",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T04:58:49.803458+00:00",
+    "last_updated": "2026-04-16T22:57:04.638403+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1335030322885419533",
@@ -787,12 +838,13 @@
     "bedrooms": "0",
     "title": "Marriott's Manor Club Studio",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:00:05.168734+00:00",
+    "last_updated": "2026-04-16T22:57:04.659748+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1335743920011776200",
@@ -808,7 +860,8 @@
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": null
   },
   {
     "listing_id": "1335827297496084732",
@@ -818,12 +871,13 @@
     "bedrooms": "1",
     "title": "Marriott's Willow Ridge Lodge 1BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:00:43.557880+00:00",
+    "last_updated": "2026-04-16T22:57:04.678198+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1336278837712389950",
@@ -834,12 +888,13 @@
     "bedrooms": "1",
     "title": "Marriott's Manor Club 1 BD Villa",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:01:59.852229+00:00",
+    "last_updated": "2026-04-16T22:57:04.700180+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1337793486011074259",
@@ -849,12 +904,13 @@
     "bedrooms": "1",
     "title": "Marriott's Timber Lodge 1BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:02:36.987450+00:00",
+    "last_updated": "2026-04-16T22:57:04.725252+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1338418199551684040",
@@ -864,12 +920,13 @@
     "bedrooms": "0",
     "title": "Marriott's Timber Lodge Studio",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:03:14.836341+00:00",
+    "last_updated": "2026-04-16T22:57:04.746426+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1345857192365428845",
@@ -879,12 +936,13 @@
     "bedrooms": "2",
     "title": "Marriott Sabal Palms 2BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:03:52.661179+00:00",
+    "last_updated": "2026-04-16T22:57:04.766216+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1412324647773953644",
@@ -895,12 +953,13 @@
     "bedrooms": "1",
     "title": "Marriott's Desert Springs Lux 1bd APT",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:05:10.899867+00:00",
+    "last_updated": "2026-04-16T22:57:04.791467+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1352510762519325395",
@@ -910,12 +969,13 @@
     "bedrooms": "2",
     "title": "Marriott Cypress Harbour 2BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:05:48.176312+00:00",
+    "last_updated": "2026-04-16T22:57:04.811372+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1352512148868362547",
@@ -927,12 +987,13 @@
     "bedrooms": "1",
     "title": "Marriott's StreamSide Douglas at vail 1BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:07:42.846683+00:00",
+    "last_updated": "2026-04-16T22:57:04.836356+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1358212668397702633",
@@ -944,12 +1005,13 @@
     "bedrooms": "2",
     "title": "Marriott's StreamSide Douglas at vail 2BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:09:36.110004+00:00",
+    "last_updated": "2026-04-16T22:57:04.862406+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1356752907695434604",
@@ -964,7 +1026,8 @@
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": null
   },
   {
     "listing_id": "1357305285827607376",
@@ -974,12 +1037,13 @@
     "bedrooms": "1",
     "title": "Marriott Lakeshore Reserve Luxury 1BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:10:12.760901+00:00",
+    "last_updated": "2026-04-16T22:57:04.881761+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1358059971830126627",
@@ -989,12 +1053,13 @@
     "bedrooms": "2",
     "title": "Marriott Lakeshore Reserve Luxury 2BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:10:49.976597+00:00",
+    "last_updated": "2026-04-16T22:57:04.900525+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1379263354536523534",
@@ -1004,12 +1069,13 @@
     "bedrooms": "0",
     "title": "Falcon Point Studio",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:11:28.184286+00:00",
+    "last_updated": "2026-04-16T22:57:04.919163+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1281468416971763412",
@@ -1025,7 +1091,8 @@
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": null
   },
   {
     "listing_id": "1442858914083850854",
@@ -1037,12 +1104,13 @@
     "bedrooms": "0",
     "title": "Studio at The Ridge Tahoe Lake Tahoe",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:13:25.817743+00:00",
+    "last_updated": "2026-04-16T22:57:04.943634+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1538490957844638640",
@@ -1052,12 +1120,13 @@
     "bedrooms": "2",
     "title": "Sheraton Vistana Resort 2BD",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:14:06.879948+00:00",
+    "last_updated": "2026-04-16T22:57:04.962566+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1351659648005730451",
@@ -1067,12 +1136,13 @@
     ],
     "bedrooms": "0",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:14:44.861840+00:00",
+    "last_updated": "2026-04-16T22:57:04.981123+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1358196399757692581",
@@ -1082,12 +1152,13 @@
     ],
     "bedrooms": "3",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:15:22.877069+00:00",
+    "last_updated": "2026-04-16T22:57:04.999040+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1355334567244774812",
@@ -1097,12 +1168,13 @@
     ],
     "bedrooms": "3",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:16:00.079555+00:00",
+    "last_updated": "2026-04-16T22:57:05.017381+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1358049423787932354",
@@ -1112,12 +1184,13 @@
     ],
     "bedrooms": "3",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:16:38.450845+00:00",
+    "last_updated": "2026-04-16T22:57:05.035583+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1342282617933647071",
@@ -1130,12 +1203,13 @@
     ],
     "bedrooms": "2",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:19:11.435099+00:00",
+    "last_updated": "2026-04-16T22:57:05.063062+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1337857043004100372",
@@ -1145,12 +1219,13 @@
     ],
     "bedrooms": "2",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:19:51.354884+00:00",
+    "last_updated": "2026-04-16T22:57:05.081429+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1371165791864588030",
@@ -1160,12 +1235,13 @@
     ],
     "bedrooms": "1",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:20:29.234564+00:00",
+    "last_updated": "2026-04-16T22:57:05.101583+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1345656546067227444",
@@ -1176,12 +1252,13 @@
     ],
     "bedrooms": "0",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:21:43.845372+00:00",
+    "last_updated": "2026-04-16T22:57:05.124319+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1342268141814944942",
@@ -1191,12 +1268,13 @@
     ],
     "bedrooms": "2",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:22:21.622625+00:00",
+    "last_updated": "2026-04-16T22:57:05.143262+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1431519232450705625",
@@ -1206,12 +1284,13 @@
     ],
     "bedrooms": "0",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:22:59.109026+00:00",
+    "last_updated": "2026-04-16T22:57:05.163222+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1358053586653778576",
@@ -1221,12 +1300,13 @@
     ],
     "bedrooms": "2",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:23:36.038205+00:00",
+    "last_updated": "2026-04-16T22:57:05.182285+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1385888264985898361",
@@ -1236,12 +1316,13 @@
     ],
     "bedrooms": "1",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:24:20.166950+00:00",
+    "last_updated": "2026-04-16T22:57:05.202167+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1337857279405467410",
@@ -1251,12 +1332,13 @@
     ],
     "bedrooms": "2",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:24:58.006011+00:00",
+    "last_updated": "2026-04-16T22:57:05.222765+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1337857153768652841",
@@ -1266,12 +1348,13 @@
     ],
     "bedrooms": "2",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:25:35.292496+00:00",
+    "last_updated": "2026-04-16T22:57:05.242562+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1357304026665293701",
@@ -1281,12 +1364,13 @@
     ],
     "bedrooms": "2",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:26:14.027003+00:00",
+    "last_updated": "2026-04-16T22:57:05.261921+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   },
   {
     "listing_id": "1334198805359959622",
@@ -1296,11 +1380,12 @@
     ],
     "bedrooms": "0",
     "sync_mode": "primary",
-    "last_updated": "2026-04-16T05:26:51.164210+00:00",
+    "last_updated": "2026-04-16T22:57:05.281046+00:00",
     "ical_enabled": true,
     "manual_dates": [],
     "address": "",
     "state": "",
-    "start_date": null
+    "start_date": null,
+    "last_error": true
   }
 ]

@@ -32,7 +32,7 @@ from storage import (
     load_listings, upsert_listing, update_timestamp, delete_listing,
     build_initial_listings, get_listing, ensure_ical_enabled_field,
     ensure_manual_dates_field, ensure_address_state_fields, ensure_start_date_field,
-    get_setting, save_setting,
+    ensure_last_error_field, get_setting, save_setting,
 )
 
 
@@ -66,6 +66,7 @@ async def lifespan(_app):
     ensure_manual_dates_field()
     ensure_address_state_fields()
     ensure_start_date_field()
+    ensure_last_error_field()
     task = asyncio.create_task(_auto_update_loop())
     yield
     task.cancel()

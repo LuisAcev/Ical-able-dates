@@ -115,6 +115,18 @@ def update_timestamp(listing_id):
         return None
 
 
+def update_last_error(listing_id, error_msg):
+    """Guarda o limpia el ultimo error de scraping de un listing (thread-safe)."""
+    with _storage_lock:
+        listings = load_listings()
+        listing_id = str(listing_id)
+        for l in listings:
+            if str(l["listing_id"]) == listing_id:
+                l["last_error"] = error_msg
+                save_listings(listings)
+                return
+
+
 # ================== SETTINGS ==================
 
 def load_settings():
@@ -174,6 +186,19 @@ def ensure_address_state_fields():
                 changed = True
             if "state" not in l:
                 l["state"] = ""
+                changed = True
+        if changed:
+            save_listings(listings)
+
+
+def ensure_last_error_field():
+    """Agrega last_error=None a listings existentes que no tengan el campo."""
+    with _storage_lock:
+        listings = load_listings()
+        changed = False
+        for l in listings:
+            if "last_error" not in l:
+                l["last_error"] = None
                 changed = True
         if changed:
             save_listings(listings)

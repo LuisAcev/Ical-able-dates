@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 from config import DATE_RANGE_START, DATE_RANGE_END
 from allin import collect_available_dates, apply_manual_extra_availability
 from ical_gen import generate_ics_for_listing
-from storage import load_listings, get_listing, update_timestamp
+from storage import load_listings, get_listing, update_timestamp, update_last_error
 
 
 def _effective_start(listing):
@@ -70,6 +70,7 @@ def update_single_listing(listing_id):
 
     all_available = set()
     manual = [tuple(r) for r in listing.get("manual_dates", [])] or None
+    failed_codes = []
 
     for resort_code in resort_codes:
         for attempt in range(2):
@@ -85,6 +86,10 @@ def update_single_listing(listing_id):
                     logger.warning("Error scraping %s, reintentando: %s", resort_code, e)
                 else:
                     logger.error("Error scraping %s tras 2 intentos: %s", resort_code, e)
+                    failed_codes.append(resort_code)
+
+    all_failed = len(failed_codes) == len(resort_codes)
+    update_last_error(listing_id, True if (all_failed and failed_codes) else None)
 
     ical_start = _effective_start(listing)
     available_sorted = sorted(d for d in all_available if d >= ical_start.strftime("%Y-%m-%d"))
