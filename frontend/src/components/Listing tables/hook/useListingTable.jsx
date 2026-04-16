@@ -9,10 +9,12 @@ import {
 import { t } from '../../../i18n';
 
 const POLLING_INTERVAL_MS = 3000;
+const POLLING_IDLE_MS = 15000;
 const SAFETY_TIMEOUT_MS = 10 * 60 * 1000;
 
 export const useListingTable = (alertRef) => {
   const [updatingIds, setUpdatingIds] = useState(new Set());
+  const [isBackendUpdating, setIsBackendUpdating] = useState(false);
   const wasUpdatingRef = useRef(false);
   const updateInFlightRef = useRef(false);
 
@@ -31,7 +33,7 @@ export const useListingTable = (alertRef) => {
     data: status,
     error: statusError,
   } = useGetStatusQuery(undefined, {
-    pollingInterval: updatingIds.size > 0 ? POLLING_INTERVAL_MS : 0,
+    pollingInterval: updatingIds.size > 0 || isBackendUpdating ? POLLING_INTERVAL_MS : POLLING_IDLE_MS,
   });
 
   // Si el polling falla, liberar el bloqueo para que el usuario pueda reintentar
@@ -43,6 +45,10 @@ export const useListingTable = (alertRef) => {
   }, [statusError, updatingIds.size]);
 
   const isUpdating = status?.updating ?? false;
+
+  useEffect(() => {
+    setIsBackendUpdating(status?.updating ?? false);
+  }, [status?.updating]);
 
   // Cuando status pasa de updating=true a updating=false, limpiar y notificar
   useEffect(() => {

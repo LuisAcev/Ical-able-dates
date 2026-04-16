@@ -10,16 +10,16 @@ export default defineConfig({
   ],
   server: {
     // Produccion //
-    proxy: {
-      '/api': 'https://ical-able-dates-production.up.railway.app',
-      '/ical': 'https://ical-able-dates-production.up.railway.app',
-    },
+    // proxy: {
+    //   '/api': 'https://ical-able-dates-production.up.railway.app',
+    //   '/ical': 'https://ical-able-dates-production.up.railway.app',
+    // },
 
     // local //
 
-    //     proxy: {
-    //   '/api': 'http://localhost:8085',
-    //   '/ical': 'http://localhost:8085',
-    // },
+        proxy: {
+      '/api': 'http://localhost:8085',
+      '/ical': 'http://localhost:8085',
+    },
   },
 })

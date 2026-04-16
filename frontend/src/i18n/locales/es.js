@@ -34,6 +34,7 @@ export const es = {
     viewUrlTooltip: "Ver iCal URL",
     copied: "Copiado",
     noUrlConfigured: "Sin URL base configurada",
+    lastErrorTooltip: "Error en última actualización. Actualizar manualmente.",
     icalUrlDialogTitle: "iCal URL",
     copyButton: "Copiar",
     closeButton: "Cerrar",

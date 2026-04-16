@@ -13,6 +13,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import CheckIcon from "@mui/icons-material/Check";
 import EditIcon from "@mui/icons-material/Edit";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { IcalDatesModal } from "../IcalDatesModal/IcalDatesModal";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -328,7 +329,21 @@ export const ListingTable = ({
       align: "Left",
       headerAlign: "center",
       width: 200,
-      renderCell: (params) => formatDate(params.value),
+      renderCell: (params) => {
+        const lastError = params.row.last_error;
+        return (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <Box sx={{ width: 22, display: "flex", alignItems: "center", flexShrink: 0 }}>
+              {lastError && (
+                <Tooltip title={t.listingTable.lastErrorTooltip} arrow>
+                  <WarningAmberIcon sx={{ color: "#ffa726", fontSize: 18 }} />
+                </Tooltip>
+              )}
+            </Box>
+            {formatDate(params.value)}
+          </Box>
+        );
+      },
     },
     {
       field: "ical_url",
