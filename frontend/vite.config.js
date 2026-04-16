@@ -9,9 +9,17 @@ export default defineConfig({
     babel({ presets: [reactCompilerPreset()] })
   ],
   server: {
+    // Produccion //
     proxy: {
-      '/api': 'http://localhost:8085',
-      '/ical': 'http://localhost:8085',
+      '/api': 'https://ical-able-dates-production.up.railway.app',
+      '/ical': 'https://ical-able-dates-production.up.railway.app',
     },
+
+    // local //
+
+    //     proxy: {
+    //   '/api': 'http://localhost:8085',
+    //   '/ical': 'http://localhost:8085',
+    // },
   },
 })

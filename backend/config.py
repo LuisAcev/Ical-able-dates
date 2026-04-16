@@ -41,6 +41,9 @@ DATE_INPUT_RETRIES = int(_env("DATE_INPUT_RETRIES", "2"))
 # ================== AIRBNB ==================
 AIRBNB_PROFILE_DIR = _env("AIRBNB_PROFILE_DIR", "")
 
+# ================== AUTO UPDATE ==================
+AUTO_UPDATE_HOURS = int(_env("AUTO_UPDATE_HOURS", "24"))
+
 # ================== ICAL SERVER ==================
 ICAL_SERVER_HOST = _env("ICAL_SERVER_HOST", "0.0.0.0")
 ICAL_SERVER_PORT = int(_env("ICAL_SERVER_PORT", "8085"))
