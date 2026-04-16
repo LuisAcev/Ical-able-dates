@@ -208,7 +208,9 @@ def create_driver():
     opts.add_argument("--log-level=3")
     opts.add_experimental_option("excludeSwitches", ["enable-logging"])
     import subprocess
-    service = Service(log_output=subprocess.DEVNULL)
+    import shutil
+    chromedriver_path = shutil.which("chromedriver") or "/usr/local/bin/chromedriver"
+    service = Service(executable_path=chromedriver_path, log_output=subprocess.DEVNULL)
     driver = webdriver.Chrome(service=service, options=opts)
     driver.set_page_load_timeout(60)
     driver.set_script_timeout(30)
