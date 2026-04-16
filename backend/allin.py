@@ -200,6 +200,11 @@ def create_driver():
         opts.add_argument("--window-size=1920,1080")
     else:
         opts.add_argument("--start-maximized")
+    # Flags requeridos para correr Chrome en contenedores Docker/Railway
+    opts.add_argument("--no-sandbox")
+    opts.add_argument("--disable-dev-shm-usage")
+    opts.add_argument("--disable-gpu")
+    opts.add_argument("--disable-extensions")
     opts.add_argument("--log-level=3")
     opts.add_experimental_option("excludeSwitches", ["enable-logging"])
     import subprocess
