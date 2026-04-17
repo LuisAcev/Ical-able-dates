@@ -129,7 +129,7 @@ export const es = {
     dialogTitle: (listingId) => `Calendario de Disponibilidad — ${listingId}`,
     legendBlocked: "Bloqueado",
     legendAvailable: "Disponible",
-    legendManual: "Manual",
+    legendManual: "Bloqueo manual",
     legendPending: "Inicio de rango (clic en fecha final)",
     manualRangesTitle: "Rangos manuales",
     noManualRanges: "Sin rangos manuales",

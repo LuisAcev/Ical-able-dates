@@ -185,6 +185,7 @@ export const IcalDatesModal = ({ open, onClose, listingId, alertRef }) => {
       }).unwrap();
       await regenerateIcal(listingId).unwrap();
       alertRef?.current?.showSuccess(t.icalDates.saveSuccess);
+      onClose();
     } catch {
       alertRef?.current?.showError(t.icalDates.saveError);
     }

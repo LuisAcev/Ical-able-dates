@@ -489,9 +489,9 @@ def api_regenerate_ical(listing_id: str):
 
     available_dates = list(all_dates - blocked_dates)
 
-    from allin import apply_manual_extra_availability
-    manual = [tuple(r) for r in existing.get("manual_dates", [])] or None
-    available_dates = apply_manual_extra_availability(listing_id, available_dates, stored_manual_dates=manual)
+    from allin import apply_manual_blocked_dates
+    manual = [tuple(r) for r in existing.get("manual_dates", [])] or []
+    available_dates = apply_manual_blocked_dates(available_dates, manual)
 
     # Aplicar start_date del listing si esta configurado
     raw_start = existing.get("start_date")

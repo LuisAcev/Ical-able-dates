@@ -129,7 +129,7 @@ export const en = {
     dialogTitle: (listingId) => `Availability Calendar — ${listingId}`,
     legendBlocked: "Blocked",
     legendAvailable: "Available",
-    legendManual: "Manual",
+    legendManual: "Manual block",
     legendPending: "Range start (click end date)",
     manualRangesTitle: "Manual ranges",
     noManualRanges: "No manual ranges",

@@ -14,7 +14,7 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 from config import DATE_RANGE_START, DATE_RANGE_END
-from allin import collect_available_dates, apply_manual_extra_availability
+from allin import collect_available_dates, apply_manual_extra_availability, apply_manual_blocked_dates
 from ical_gen import generate_ics_for_listing
 from storage import load_listings, get_listing, update_timestamp, update_last_error
 
@@ -77,7 +77,6 @@ def update_single_listing(listing_id):
             try:
                 logger.info("Scraping %s for listing %s (attempt %d)...", resort_code, listing_id, attempt + 1)
                 available = collect_available_dates(resort_code, listing_id, bedroom_filter)
-                available = apply_manual_extra_availability(listing_id, available, stored_manual_dates=manual)
                 all_available.update(available)
                 logger.info("%s: %d available dates found", resort_code, len(available))
                 break
@@ -92,7 +91,8 @@ def update_single_listing(listing_id):
     update_last_error(listing_id, True if (all_failed and failed_codes) else None)
 
     ical_start = _effective_start(listing)
-    available_sorted = sorted(d for d in all_available if d >= ical_start.strftime("%Y-%m-%d"))
+    available_list = sorted(d for d in all_available if d >= ical_start.strftime("%Y-%m-%d"))
+    available_sorted = apply_manual_blocked_dates(available_list, [tuple(r) for r in listing.get("manual_dates", [])] or [])
     generate_ics_for_listing(listing_id, available_sorted, ical_start, DATE_RANGE_END)
     ts = update_timestamp(listing_id)
 

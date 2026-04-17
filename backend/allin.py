@@ -101,6 +101,25 @@ def apply_manual_extra_availability(listing_id, available_dates, stored_manual_d
     logger.info("Manual extra availability for %s: +%d manual dates.", listing_id, added)
     return out
 
+
+def apply_manual_blocked_dates(available_dates, manual_ranges):
+    """Remove manually blocked date ranges from available dates."""
+    if not manual_ranges:
+        return available_dates
+    blocked_manual = set()
+    for (start, end) in manual_ranges:
+        try:
+            cur = datetime.strptime(start, "%Y-%m-%d")
+            end_dt = datetime.strptime(end, "%Y-%m-%d")
+        except ValueError:
+            continue
+        while cur < end_dt:
+            blocked_manual.add(cur.strftime("%Y-%m-%d"))
+            cur += timedelta(days=1)
+    removed = len(blocked_manual)
+    logger.info("Manual blocked dates: -%d dates removed from available.", removed)
+    return [d for d in available_dates if d not in blocked_manual]
+
 # Speed knobs cargados desde config.py via .env
 
 # ========== Selenium helpers ==========
