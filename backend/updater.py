@@ -14,7 +14,7 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 from config import DATE_RANGE_START, DATE_RANGE_END
-from allin import collect_available_dates, apply_manual_extra_availability, apply_manual_blocked_dates
+from allin import collect_available_dates, apply_manual_extra_availability, apply_manual_blocked_dates, apply_manual_available_override
 from ical_gen import generate_ics_for_listing
 from storage import load_listings, get_listing, update_timestamp, update_last_error
 
@@ -93,6 +93,7 @@ def update_single_listing(listing_id):
     ical_start = _effective_start(listing)
     available_list = sorted(d for d in all_available if d >= ical_start.strftime("%Y-%m-%d"))
     available_sorted = apply_manual_blocked_dates(available_list, [tuple(r) for r in (listing.get("manual_dates") or [])])
+    available_sorted = apply_manual_available_override(available_sorted, [tuple(r) for r in (listing.get("available_override_dates") or [])])
     generate_ics_for_listing(listing_id, available_sorted, ical_start, DATE_RANGE_END)
     ts = update_timestamp(listing_id)
 

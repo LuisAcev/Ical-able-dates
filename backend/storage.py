@@ -207,6 +207,19 @@ def ensure_last_error_field():
             save_listings(listings)
 
 
+def ensure_available_override_field():
+    """Agrega available_override_dates=[] a listings existentes que no tengan el campo."""
+    with _storage_lock:
+        listings = load_listings()
+        changed = False
+        for l in listings:
+            if "available_override_dates" not in l:
+                l["available_override_dates"] = []
+                changed = True
+        if changed:
+            save_listings(listings)
+
+
 def ensure_start_date_field():
     """Agrega start_date=None a listings existentes que no tengan el campo."""
     with _storage_lock:

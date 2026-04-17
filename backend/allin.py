@@ -120,6 +120,26 @@ def apply_manual_blocked_dates(available_dates, manual_ranges):
     logger.info("Manual blocked dates: -%d dates removed from available.", removed)
     return [d for d in available_dates if d not in blocked_manual]
 
+
+def apply_manual_available_override(available_dates, override_ranges):
+    """Force-add date ranges to available list, overriding scraper blocks."""
+    if not override_ranges:
+        return available_dates
+    override_set = set()
+    for (start, end) in override_ranges:
+        try:
+            cur = datetime.strptime(start, "%Y-%m-%d")
+            end_dt = datetime.strptime(end, "%Y-%m-%d")
+        except ValueError:
+            continue
+        while cur < end_dt:
+            override_set.add(cur.strftime("%Y-%m-%d"))
+            cur += timedelta(days=1)
+    available_set = set(available_dates)
+    added = len(override_set - available_set)
+    logger.info("Manual available overrides: +%d dates added to available.", added)
+    return sorted(available_set | override_set)
+
 # Speed knobs cargados desde config.py via .env
 
 # ========== Selenium helpers ==========

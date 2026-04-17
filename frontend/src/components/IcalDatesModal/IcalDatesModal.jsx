@@ -58,12 +58,14 @@ const greenButtonSx = {
 
 const cancelButtonSx = { color: "#BDBDBD", borderRadius: "1rem" };
 
-function CustomDay({ day, blockedSet, availableSet, manualSet, pendingDate, ...other }) {
+function CustomDay({ day, blockedSet, availableSet, manualSet, overrideSet, pendingDate, pendingOverrideDate, ...other }) {
   const dateStr = day.format("YYYY-MM-DD");
   const isBlocked = blockedSet.has(dateStr);
   const isAvailable = availableSet.has(dateStr);
   const isManual = manualSet.has(dateStr);
+  const isOverride = overrideSet.has(dateStr);
   const isPending = pendingDate && day.isSame(pendingDate, "day");
+  const isPendingOverride = pendingOverrideDate && day.isSame(pendingOverrideDate, "day");
 
   const TEXT_COLOR = "#E0E0E0";
   let bgColor = "transparent";
@@ -71,6 +73,12 @@ function CustomDay({ day, blockedSet, availableSet, manualSet, pendingDate, ...o
 
   if (isPending) {
     bgColor = "rgba(255, 167, 38, 0.6)";
+    color = TEXT_COLOR;
+  } else if (isPendingOverride) {
+    bgColor = "rgba(38, 198, 218, 0.7)";
+    color = TEXT_COLOR;
+  } else if (isOverride) {
+    bgColor = "rgba(38, 198, 218, 0.5)";
     color = TEXT_COLOR;
   } else if (isManual) {
     bgColor = "rgba(66, 165, 245, 0.5)";
@@ -105,13 +113,16 @@ export const IcalDatesModal = ({ open, onClose, listingId, alertRef }) => {
   const [regenerateIcal] = useRegenerateIcalMutation();
 
   const [localManual, setLocalManual] = useState([]);
+  const [localOverride, setLocalOverride] = useState([]);
   const [localStartDate, setLocalStartDate] = useState(null);
   const [pendingDate, setPendingDate] = useState(null);
+  const [pendingOverrideDate, setPendingOverrideDate] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
 
   useEffect(() => {
     if (data) {
       setLocalManual(data.manual_dates ?? []);
+      setLocalOverride(data.available_override_dates ?? []);
       setLocalStartDate(data.start_date ? dayjs(data.start_date) : null);
     }
   }, [data]);
@@ -119,6 +130,7 @@ export const IcalDatesModal = ({ open, onClose, listingId, alertRef }) => {
   useEffect(() => {
     if (!open) {
       setPendingDate(null);
+      setPendingOverrideDate(null);
     }
   }, [open]);
 
@@ -138,10 +150,38 @@ export const IcalDatesModal = ({ open, onClose, listingId, alertRef }) => {
     return s;
   }, [localManual]);
 
+  const overrideSet = useMemo(() => {
+    const s = new Set();
+    for (const [start, end] of localOverride) {
+      let cur = dayjs(start);
+      const endD = dayjs(end);
+      while (cur.isBefore(endD)) {
+        s.add(cur.format("YYYY-MM-DD"));
+        cur = cur.add(1, "day");
+      }
+    }
+    return s;
+  }, [localOverride]);
+
   const handleDayClick = (day) => {
     const dateStr = day.format("YYYY-MM-DD");
 
-    // Si click en una fecha manual existente, buscar y eliminar ese rango
+    // Click en fecha override existente → eliminar ese rango override
+    for (let i = 0; i < localOverride.length; i++) {
+      const [start, end] = localOverride[i];
+      let cur = dayjs(start);
+      const endD = dayjs(end);
+      while (cur.isBefore(endD)) {
+        if (cur.format("YYYY-MM-DD") === dateStr) {
+          setLocalOverride((prev) => prev.filter((_, idx) => idx !== i));
+          setPendingOverrideDate(null);
+          return;
+        }
+        cur = cur.add(1, "day");
+      }
+    }
+
+    // Click en fecha manual existente → eliminar ese rango manual
     for (let i = 0; i < localManual.length; i++) {
       const [start, end] = localManual[i];
       let cur = dayjs(start);
@@ -156,12 +196,31 @@ export const IcalDatesModal = ({ open, onClose, listingId, alertRef }) => {
       }
     }
 
+    // Click en fecha bloqueada (roja) → crear rango de disponibilidad forzada
+    if (blockedSet.has(dateStr)) {
+      if (!pendingOverrideDate) {
+        setPendingDate(null);
+        setPendingOverrideDate(day);
+      } else {
+        const start = pendingOverrideDate.isBefore(day) ? pendingOverrideDate : day;
+        const end = pendingOverrideDate.isBefore(day) ? day : pendingOverrideDate;
+        const endExclusive = end.add(1, "day");
+        setLocalOverride((prev) => [
+          ...prev,
+          [start.format("YYYY-MM-DD"), endExclusive.format("YYYY-MM-DD")],
+        ]);
+        setPendingOverrideDate(null);
+      }
+      return;
+    }
+
+    // Click en fecha disponible (verde) → crear rango de bloqueo manual
+    setPendingOverrideDate(null);
     if (!pendingDate) {
       setPendingDate(day);
     } else {
       const start = pendingDate.isBefore(day) ? pendingDate : day;
       const end = pendingDate.isBefore(day) ? day : pendingDate;
-      // end es exclusivo (checkout), así que sumamos 1 día
       const endExclusive = end.add(1, "day");
       setLocalManual((prev) => [
         ...prev,
@@ -181,6 +240,7 @@ export const IcalDatesModal = ({ open, onClose, listingId, alertRef }) => {
       await saveManualDates({
         listingId,
         manual_dates: localManual,
+        available_override_dates: localOverride,
         start_date: localStartDate ? localStartDate.format("YYYY-MM-DD") : null,
       }).unwrap();
       await regenerateIcal(listingId).unwrap();
@@ -231,7 +291,9 @@ export const IcalDatesModal = ({ open, onClose, listingId, alertRef }) => {
                         blockedSet={blockedSet}
                         availableSet={availableSet}
                         manualSet={manualSet}
+                        overrideSet={overrideSet}
                         pendingDate={pendingDate}
+                        pendingOverrideDate={pendingOverrideDate}
                       />
                     ),
                   }}
@@ -258,7 +320,11 @@ export const IcalDatesModal = ({ open, onClose, listingId, alertRef }) => {
                 <Box sx={{ width: 14, height: 14, borderRadius: "50%", backgroundColor: "rgba(66, 165, 245, 0.6)" }} />
                 <Typography variant="caption" sx={{ color: "#BDBDBD" }}>{t.icalDates.legendManual}</Typography>
               </Box>
-              {pendingDate && (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <Box sx={{ width: 14, height: 14, borderRadius: "50%", backgroundColor: "rgba(38, 198, 218, 0.6)" }} />
+                <Typography variant="caption" sx={{ color: "#BDBDBD" }}>{t.icalDates.legendOverride}</Typography>
+              </Box>
+              {(pendingDate || pendingOverrideDate) && (
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   <Box sx={{ width: 14, height: 14, borderRadius: "50%", backgroundColor: "rgba(255, 167, 38, 0.7)" }} />
                   <Typography variant="caption" sx={{ color: "#ffa726" }}>{t.icalDates.legendPending}</Typography>
@@ -343,6 +409,32 @@ export const IcalDatesModal = ({ open, onClose, listingId, alertRef }) => {
                       backgroundColor: "rgba(66, 165, 245, 0.2)",
                       color: "#90caf9",
                       borderColor: "#42a5f5",
+                      border: "1px solid",
+                    }}
+                  />
+                ))}
+              </Box>
+            )}
+            {/* Rangos de disponibilidad forzada */}
+            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, color: "#E0E0E0" }}>
+              {t.icalDates.overrideRangesTitle}
+            </Typography>
+            {localOverride.length === 0 ? (
+              <Typography variant="body2" sx={{ color: "#777" }}>
+                {t.icalDates.noOverrideRanges}
+              </Typography>
+            ) : (
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                {localOverride.map(([start, end], idx) => (
+                  <Chip
+                    key={`ov-${start}-${end}`}
+                    label={`${start} → ${end}`}
+                    onDelete={() => setLocalOverride((prev) => prev.filter((_, i) => i !== idx))}
+                    deleteIcon={<DeleteIcon sx={{ color: "#ef9a9a !important" }} />}
+                    sx={{
+                      backgroundColor: "rgba(38, 198, 218, 0.15)",
+                      color: "#80deea",
+                      borderColor: "#26c6da",
                       border: "1px solid",
                     }}
                   />

@@ -38,7 +38,7 @@ from storage import (
     load_listings, upsert_listing, update_timestamp, delete_listing,
     build_initial_listings, get_listing, ensure_ical_enabled_field,
     ensure_manual_dates_field, ensure_address_state_fields, ensure_start_date_field,
-    ensure_last_error_field, get_setting, save_setting,
+    ensure_last_error_field, ensure_available_override_field, get_setting, save_setting,
 )
 
 
@@ -74,6 +74,7 @@ async def lifespan(_app):
     ensure_address_state_fields()
     ensure_start_date_field()
     ensure_last_error_field()
+    ensure_available_override_field()
     task = asyncio.create_task(_auto_update_loop())
     yield
     task.cancel()
@@ -180,9 +181,10 @@ class IcalBaseUrl(BaseModel):
 
 class ManualDatesUpdate(BaseModel):
     manual_dates: list[list[str]]
+    available_override_dates: list[list[str]] = []
     start_date: str | None = None
 
-    @field_validator('manual_dates', mode='before')
+    @field_validator('manual_dates', 'available_override_dates', mode='before')
     @classmethod
     def validate_dates(cls, v):
         for pair in v:
@@ -444,6 +446,7 @@ async def api_get_listing_dates(listing_id: str):
         "blocked_dates": sorted(blocked_dates),
         "available_dates": available_dates,
         "manual_dates": existing.get("manual_dates", []),
+        "available_override_dates": existing.get("available_override_dates", []),
         "start_date": existing.get("start_date") or None,
     }
 
@@ -457,11 +460,13 @@ async def api_save_manual_dates(listing_id: str, data: ManualDatesUpdate):
         raise HTTPException(status_code=404, detail="Listing no encontrado")
 
     existing["manual_dates"] = data.manual_dates
+    existing["available_override_dates"] = data.available_override_dates
     existing["start_date"] = data.start_date
     upsert_listing(existing)
     return {
         "message": "Fechas manuales guardadas",
         "manual_dates": data.manual_dates,
+        "available_override_dates": data.available_override_dates,
         "start_date": data.start_date,
     }
 
@@ -489,9 +494,11 @@ async def api_regenerate_ical(listing_id: str):
 
     available_dates = list(all_dates - blocked_dates)
 
-    from allin import apply_manual_blocked_dates
+    from allin import apply_manual_blocked_dates, apply_manual_available_override
     manual = [tuple(r) for r in (existing.get("manual_dates") or [])]
     available_dates = apply_manual_blocked_dates(available_dates, manual)
+    overrides = [tuple(r) for r in (existing.get("available_override_dates") or [])]
+    available_dates = apply_manual_available_override(available_dates, overrides)
 
     # Aplicar start_date del listing si esta configurado
     raw_start = existing.get("start_date")
