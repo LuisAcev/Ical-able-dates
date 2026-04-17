@@ -50,6 +50,8 @@ def _read_json(filepath, default):
     except (json.JSONDecodeError, ValueError):
         logger.error("Corrupt JSON at %s, using default", filepath)
         return default
+    except (FileNotFoundError, OSError):
+        return default
 
 
 # ================== LISTINGS ==================
@@ -67,9 +69,10 @@ def save_listings(listings):
 def get_listing(listing_id):
     """Busca un listing por ID. Retorna None si no existe."""
     listing_id = str(listing_id)
-    for l in load_listings():
-        if str(l["listing_id"]) == listing_id:
-            return l
+    with _storage_lock:
+        for l in load_listings():
+            if str(l["listing_id"]) == listing_id:
+                return l
     return None
 
 

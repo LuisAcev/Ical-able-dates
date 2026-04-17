@@ -1,4 +1,5 @@
 import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
 import Box from "@mui/material/Box";
 import Tooltip from "@mui/material/Tooltip";
 import SyncIcon from "@mui/icons-material/Sync";
@@ -17,23 +18,32 @@ export const UpdateIcalButton = ({ isUpdating, handleUpdateAll, handleCancelUpda
   return (
     <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
       {isUpdating ? (
-        <Button
-          variant="contained"
-          size="large"
-          disabled
-          startIcon={<ListingCircularProgress size={20} color="inherit" />}
-          endIcon={
-            <Tooltip title={t.updateAll.cancelButton} arrow>
-              <CancelIcon
-                sx={{ width: 18, height: 18, color: "#ffcdd2", cursor: "pointer", pointerEvents: "auto" }}
-                onClick={(e) => { e.stopPropagation(); handleCancelUpdate(); }}
-              />
-            </Tooltip>
-          }
-          sx={{ ...primaryIconButton, minWidth: "auto" }}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            background: "linear-gradient(135deg, #16A34A, #15803d)",
+            borderRadius: "1.5rem",
+            height: 40,
+            pl: 2,
+            pr: 0.5,
+            gap: 1,
+          }}
         >
-          {counter}
-        </Button>
+          <ListingCircularProgress size={18} color="inherit" sx={{ color: "#fff" }} />
+          <Box sx={{ color: "#fff", fontSize: 14, fontFamily: "inherit", whiteSpace: "nowrap" }}>
+            {counter}
+          </Box>
+          <Tooltip title={t.updateAll.cancelButton} arrow>
+            <IconButton
+              size="small"
+              onClick={handleCancelUpdate}
+              sx={{ color: "#ffcdd2", "&:hover": { color: "#fff", backgroundColor: "rgba(255,255,255,0.15)" } }}
+            >
+              <CancelIcon sx={{ width: 18, height: 18 }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
       ) : (
         <Tooltip title={t.updateAll.button} arrow>
           <span>

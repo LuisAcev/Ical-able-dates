@@ -37,6 +37,10 @@ def get_driver():
                 _driver.current_window_handle
                 return _driver
             except Exception:
+                try:
+                    _driver.quit()
+                except Exception:
+                    pass
                 _driver = None
 
         # Perfil persistente separado para Selenium (no conflicta con Chrome abierto)
@@ -48,6 +52,14 @@ def get_driver():
         options.add_argument("--no-first-run")
         options.add_argument("--no-default-browser-check")
         options.add_argument("--disable-blink-features=AutomationControlled")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-setuid-sandbox")
+        options.add_argument("--no-zygote")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--disable-crash-reporter")
+        options.add_argument("--disable-breakpad")
+        options.add_argument("--log-level=3")
         _driver = webdriver.Chrome(options=options)
         return _driver
 

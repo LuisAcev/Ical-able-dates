@@ -22,6 +22,8 @@ from selenium.common.exceptions import TimeoutException
 
 from datetime import datetime, timedelta
 import logging
+import shutil
+import subprocess
 import threading
 import time, re
 
@@ -203,6 +205,8 @@ def create_driver():
         opts.add_argument("--start-maximized")
     # Flags requeridos para correr Chrome en contenedores Docker/Railway
     opts.add_argument("--no-sandbox")
+    opts.add_argument("--disable-setuid-sandbox")
+    opts.add_argument("--no-zygote")
     opts.add_argument("--disable-dev-shm-usage")
     opts.add_argument("--disable-gpu")
     opts.add_argument("--disable-extensions")
@@ -214,8 +218,6 @@ def create_driver():
     opts.add_argument("--disable-breakpad")
     opts.add_argument("--log-level=3")
     opts.add_experimental_option("excludeSwitches", ["enable-logging"])
-    import subprocess
-    import shutil
     chromedriver_path = shutil.which("chromedriver") or "/usr/local/bin/chromedriver"
     service = Service(executable_path=chromedriver_path, log_output=subprocess.DEVNULL)
     driver = webdriver.Chrome(service=service, options=opts)
