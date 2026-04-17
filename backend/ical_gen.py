@@ -54,13 +54,11 @@ def compute_blocked_ranges(available_dates, range_start, range_end):
         if (curr_dt - prev_dt).days == 1:
             prev = d
         else:
-            end_exclusive = (datetime.strptime(prev, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y%m%d")
-            ranges.append((datetime.strptime(start, "%Y-%m-%d").strftime("%Y%m%d"), end_exclusive))
+            ranges.append((datetime.strptime(start, "%Y-%m-%d").strftime("%Y%m%d"), prev.replace("-", "")))
             start = d
             prev = d
 
-    end_exclusive = (datetime.strptime(prev, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y%m%d")
-    ranges.append((datetime.strptime(start, "%Y-%m-%d").strftime("%Y%m%d"), end_exclusive))
+    ranges.append((datetime.strptime(start, "%Y-%m-%d").strftime("%Y%m%d"), prev.replace("-", "")))
 
     return ranges
 
@@ -185,7 +183,7 @@ def parse_ics_file(listing_id, output_dir=None):
                     start = datetime.strptime(dtstart, "%Y%m%d")
                     end = datetime.strptime(dtend, "%Y%m%d")
                     cur = start
-                    while cur < end:
+                    while cur <= end:
                         blocked.add(cur.strftime("%Y-%m-%d"))
                         cur += timedelta(days=1)
                 except ValueError:
