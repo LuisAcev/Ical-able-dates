@@ -34,6 +34,11 @@ import {
 } from "../../store/api/api";
 import { t, dateLocale } from "../../i18n";
 
+const RESORT_CODE_RE = /^[A-Z0-9]{2,10}$/i;
+const validateResortCodes = (value) =>
+  value.trim() === "" ||
+  value.split(",").map((c) => c.trim()).filter(Boolean).every((c) => RESORT_CODE_RE.test(c));
+
 const extractErrorMessage = (err, fallback) => {
   const detail = err?.data?.detail;
   if (!detail) return fallback;
@@ -700,6 +705,8 @@ export const ListingTable = ({
               onChange={(e) =>
                 setEditForm((p) => ({ ...p, resort_codes: e.target.value }))
               }
+              error={!validateResortCodes(editForm.resort_codes)}
+              helperText={!validateResortCodes(editForm.resort_codes) ? t.editListing.resortCodesError : ""}
               sx={textFieldSx}
             />
             <TextField
@@ -750,6 +757,7 @@ export const ListingTable = ({
           <Button
             onClick={handleRequestUpdate}
             variant="contained"
+            disabled={!validateResortCodes(editForm.resort_codes)}
             sx={greenButtonSx}
           >
             {t.editListing.updateButton}

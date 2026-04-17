@@ -15,6 +15,7 @@ import asyncio
 import logging
 import os
 import re
+import subprocess
 import threading
 
 logger = logging.getLogger(__name__)
@@ -60,6 +61,7 @@ async def _auto_update_loop():
 @asynccontextmanager
 async def lifespan(_app):
     """Inicializa la data de listings si no existe."""
+    _kill_chrome_zombies()
     os.makedirs(ICS_OUTPUT_DIR, exist_ok=True)
     build_initial_listings()
     ensure_ical_enabled_field()
@@ -503,6 +505,15 @@ def api_regenerate_ical(listing_id: str):
     return {"message": f"iCal regenerado para {listing_id}", "updated_at": ts}
 
 
+def _kill_chrome_zombies():
+    """Mata procesos Chrome/chromedriver zombies antes de iniciar un run."""
+    for name in ("chrome", "chromedriver"):
+        try:
+            subprocess.run(["pkill", "-f", name], capture_output=True)
+        except Exception:
+            pass
+
+
 def _set_status(**kwargs):
     """Actualiza _update_status de forma thread-safe."""
     with _update_lock:
@@ -519,6 +530,7 @@ def _run_update_single(listing_id):
             progress=0, total=1, error=None,
         )
 
+    _kill_chrome_zombies()
     timer = None
     try:
         timer = _start_safety_timeout()
@@ -545,6 +557,7 @@ def _run_update_all():
             progress=0, total=len(listings), error=None,
         )
 
+    _kill_chrome_zombies()
     timer = None
     try:
         timer = _start_safety_timeout()

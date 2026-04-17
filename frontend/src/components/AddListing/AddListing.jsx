@@ -33,6 +33,10 @@ const textFieldSx = {
 };
 
 const BEDROOM_OPTIONS = ["0", "1", "2", "3"];
+const RESORT_CODE_RE = /^[A-Z0-9]{2,10}$/i;
+const validateResortCodes = (value) =>
+  value.trim() === "" ||
+  value.split(",").map((c) => c.trim()).filter(Boolean).every((c) => RESORT_CODE_RE.test(c));
 
 const initialForm = {
   listing_id: "",
@@ -53,10 +57,14 @@ export const AddListing = ({ alertRef }) => {
   const updateField = (field) => (e) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
+  const resortCodesInvalid =
+    form.resort_codes.trim() !== "" && !validateResortCodes(form.resort_codes);
+
   const isFormValid =
     form.listing_id.trim() !== "" &&
     form.title.trim() !== "" &&
-    form.resort_codes.trim() !== "";
+    form.resort_codes.trim() !== "" &&
+    !resortCodesInvalid;
 
   const handleOpen = () => {
     setForm(initialForm);
@@ -150,6 +158,8 @@ export const AddListing = ({ alertRef }) => {
               placeholder={t.addListing.resortCodesPlaceholder}
               value={form.resort_codes}
               onChange={updateField("resort_codes")}
+              error={resortCodesInvalid}
+              helperText={resortCodesInvalid ? t.addListing.resortCodesError : ""}
               sx={textFieldSx}
             />
             <TextField
@@ -170,24 +180,26 @@ export const AddListing = ({ alertRef }) => {
               ))}
             </TextField>
           </Box>
-          <TextField
-            fullWidth
-            size="small"
-            label={t.addListing.addressLabel}
-            placeholder={t.addListing.addressPlaceholder}
-            value={form.address}
-            onChange={updateField("address")}
-            sx={textFieldSx}
-          />
-          <TextField
-            fullWidth
-            size="small"
-            label={t.addListing.stateLabel}
-            placeholder={t.addListing.statePlaceholder}
-            value={form.state}
-            onChange={updateField("state")}
-            sx={textFieldSx}
-          />
+          <Box sx={{ display: "flex", gap: 3 }}>
+            <TextField
+              fullWidth
+              size="small"
+              label={t.addListing.addressLabel}
+              placeholder={t.addListing.addressPlaceholder}
+              value={form.address}
+              onChange={updateField("address")}
+              sx={textFieldSx}
+            />
+            <TextField
+              fullWidth
+              size="small"
+              label={t.addListing.stateLabel}
+              placeholder={t.addListing.statePlaceholder}
+              value={form.state}
+              onChange={updateField("state")}
+              sx={textFieldSx}
+            />
+          </Box>
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center" }}>
           <Button
