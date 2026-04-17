@@ -49,17 +49,17 @@ async def _auto_update_loop():
     loop = asyncio.get_running_loop()
     while True:
         try:
-            logger.info("Auto-update: iniciando actualizacion programada...")
+            logger.info("Auto-update: starting scheduled update...")
             await asyncio.wait_for(
                 loop.run_in_executor(None, _run_update_all),
                 timeout=float(_TASK_TIMEOUT_SECONDS),
             )
-            logger.info("Auto-update: completada. Proxima en %d horas.", AUTO_UPDATE_HOURS)
+            logger.info("Auto-update: completed. Next run in %d hours.", AUTO_UPDATE_HOURS)
         except asyncio.TimeoutError:
-            logger.warning("Auto-update: timeout de %ds alcanzado, liberando loop.", _TASK_TIMEOUT_SECONDS)
+            logger.warning("Auto-update: timeout of %ds reached, releasing loop.", _TASK_TIMEOUT_SECONDS)
             _set_status(updating=False, current_listing=None, error="Timeout de actualizacion")
         except Exception as e:
-            logger.exception("Auto-update: error inesperado, reintentara en %dh: %s", AUTO_UPDATE_HOURS, e)
+            logger.exception("Auto-update: unexpected error, will retry in %dh: %s", AUTO_UPDATE_HOURS, e)
         await asyncio.sleep(AUTO_UPDATE_HOURS * 3600)
 
 
@@ -105,14 +105,15 @@ _update_status = {
 
 # Timeout de seguridad total: 4h cubre 85 listings con reintentos (~3min/listing worst case)
 _TASK_TIMEOUT_SECONDS = 4 * 60 * 60
+_active_timer = None
 
 def _start_safety_timeout():
     """Inicia un timer que libera el estado updating si se excede el timeout."""
     def _timeout_handler():
         with _update_lock:
             if _update_status["updating"]:
-                logger.warning("Timeout de seguridad: actualizacion excedio %ds", _TASK_TIMEOUT_SECONDS)
-                _update_status.update(updating=False, current_listing=None, error="Timeout de actualizacion")
+                logger.warning("Safety timeout: update exceeded %ds", _TASK_TIMEOUT_SECONDS)
+                _update_status.update(updating=False, current_listing=None, error="Update timeout")
     timer = threading.Timer(_TASK_TIMEOUT_SECONDS, _timeout_handler)
     timer.daemon = True
     timer.start()
@@ -265,7 +266,7 @@ def health_check():
 # ================== API ENDPOINTS ==================
 
 @app.get("/api/settings/ical-base-url")
-def api_get_ical_base_url():
+async def api_get_ical_base_url():
     """Retorna la URL base actual para iCal."""
     base_url = get_setting("ical_base_url", ICAL_BASE_URL)
     return {"base_url": base_url}
@@ -282,7 +283,7 @@ def api_set_ical_base_url(data: IcalBaseUrl):
 
 
 @app.get("/api/listings")
-def api_get_listings():
+async def api_get_listings():
     """Retorna todos los listings con sus detalles y timestamps."""
     base_url = get_setting("ical_base_url", ICAL_BASE_URL)
     listings = load_listings()
@@ -305,7 +306,7 @@ def api_register_listing(data: ListingRegister):
     try:
         details = fetch_listing_details(data.listing_id)
     except Exception as e:
-        logger.exception("Error scraping Airbnb para listing %s", data.listing_id)
+        logger.exception("Error scraping Airbnb for listing %s", data.listing_id)
         raise HTTPException(status_code=500, detail="Error al obtener datos de Airbnb")
     finally:
         close_driver()
@@ -398,7 +399,7 @@ def api_delete_listing(listing_id: str):
         try:
             ics_path.unlink()
         except OSError:
-            logger.warning("No se pudo eliminar %s.ics", listing_id)
+            logger.warning("Could not delete %s.ics", listing_id)
 
     return {"message": f"Listing {listing_id} eliminado"}
 
@@ -535,24 +536,30 @@ def _run_update_single(listing_id):
             progress=0, total=1, error=None,
         )
 
+    global _active_timer
     _kill_chrome_zombies()
     timer = None
     try:
         timer = _start_safety_timeout()
+        with _update_lock:
+            _active_timer = timer
         from updater import update_single_listing
         result = update_single_listing(listing_id)
         _set_status(error=result.get("error"))
     except Exception as e:
-        logger.exception("Error en update_single: %s", e)
+        logger.exception("Error in update_single: %s", e)
         _set_status(error="Error interno al actualizar listing")
     finally:
         if timer is not None:
             timer.cancel()
+        with _update_lock:
+            _active_timer = None
         _set_status(updating=False, current_listing=None, progress=1)
 
 
 def _run_update_all():
     """Background task: actualiza iCal de todos los listings."""
+    global _active_timer
     with _update_lock:
         if _update_status["updating"]:
             return
@@ -566,6 +573,8 @@ def _run_update_all():
     timer = None
     try:
         timer = _start_safety_timeout()
+        with _update_lock:
+            _active_timer = timer
         from updater import update_single_listing
         for i, listing in enumerate(listings):
             lid = listing["listing_id"]
@@ -577,11 +586,13 @@ def _run_update_all():
             except Exception as e:
                 logger.error("Error updating %s: %s", lid, e)
     except Exception as e:
-        logger.exception("Error en update_all: %s", e)
+        logger.exception("Error in update_all: %s", e)
         _set_status(error="Error interno en actualizacion masiva")
     finally:
         if timer is not None:
             timer.cancel()
+        with _update_lock:
+            _active_timer = None
         _set_status(updating=False, current_listing=None)
 
 
@@ -615,8 +626,24 @@ def api_update_all(background_tasks: BackgroundTasks):
     return {"message": "Actualizacion masiva iniciada"}
 
 
+@app.post("/api/update/cancel", status_code=200)
+def api_cancel_update():
+    """Cancela la actualizacion en curso y libera el estado."""
+    global _active_timer
+    with _update_lock:
+        if not _update_status["updating"]:
+            raise HTTPException(status_code=409, detail="No hay una actualizacion en curso")
+        if _active_timer is not None:
+            _active_timer.cancel()
+            _active_timer = None
+        _update_status.update(updating=False, current_listing=None, error="Cancelled by user")
+    _kill_chrome_zombies()
+    logger.info("Update cancelled by user.")
+    return {"message": "Update cancelled"}
+
+
 @app.get("/api/status")
-def api_status():
+async def api_status():
     """Estado actual de actualizacion."""
     with _update_lock:
         return dict(_update_status)

@@ -48,7 +48,7 @@ def _read_json(filepath, default):
         with open(filepath, "r", encoding="utf-8") as f:
             return json.load(f)
     except (json.JSONDecodeError, ValueError):
-        logger.error("JSON corrupto en %s, usando default", filepath)
+        logger.error("Corrupt JSON at %s, using default", filepath)
         return default
 
 

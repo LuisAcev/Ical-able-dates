@@ -5,6 +5,7 @@ import {
   useUpdateAllListingsMutation,
   useGetStatusQuery,
   useToggleIcalMutation,
+  useCancelUpdateMutation,
 } from '../../../store/api/api';
 import { t } from '../../../i18n';
 
@@ -28,6 +29,7 @@ export const useListingTable = (alertRef) => {
   const [updateIcal] = useUpdateListingIcalMutation();
   const [updateAll] = useUpdateAllListingsMutation();
   const [toggleIcal] = useToggleIcalMutation();
+  const [cancelUpdate] = useCancelUpdateMutation();
 
   const {
     data: status,
@@ -124,6 +126,17 @@ export const useListingTable = (alertRef) => {
     }
   }, [updateAll, listings, alertRef]);
 
+  const handleCancelUpdate = useCallback(async () => {
+    try {
+      await cancelUpdate().unwrap();
+      setUpdatingIds(new Set());
+      updateInFlightRef.current = false;
+      alertRef?.current?.showSuccess(t.updateAll.cancelSuccess);
+    } catch (err) {
+      alertRef?.current?.showError(err?.data?.detail || t.updateAll.cancelError);
+    }
+  }, [cancelUpdate, alertRef]);
+
   return {
     listings,
     loading,
@@ -133,6 +146,7 @@ export const useListingTable = (alertRef) => {
     error: listingsError,
     handleUpdateOne,
     handleUpdateAll,
+    handleCancelUpdate,
     handleToggleIcal,
   };
 };

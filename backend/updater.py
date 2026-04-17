@@ -75,17 +75,17 @@ def update_single_listing(listing_id):
     for resort_code in resort_codes:
         for attempt in range(2):
             try:
-                logger.info("Scraping %s para listing %s (intento %d)...", resort_code, listing_id, attempt + 1)
+                logger.info("Scraping %s for listing %s (attempt %d)...", resort_code, listing_id, attempt + 1)
                 available = collect_available_dates(resort_code, listing_id, bedroom_filter)
                 available = apply_manual_extra_availability(listing_id, available, stored_manual_dates=manual)
                 all_available.update(available)
-                logger.info("%s: %d dias disponibles", resort_code, len(available))
+                logger.info("%s: %d available dates found", resort_code, len(available))
                 break
             except Exception as e:
                 if attempt == 0:
-                    logger.warning("Error scraping %s, reintentando: %s", resort_code, e)
+                    logger.warning("Error scraping %s, retrying: %s", resort_code, e)
                 else:
-                    logger.error("Error scraping %s tras 2 intentos: %s", resort_code, e)
+                    logger.error("Error scraping %s after 2 attempts: %s", resort_code, e)
                     failed_codes.append(resort_code)
 
     all_failed = len(failed_codes) == len(resort_codes)

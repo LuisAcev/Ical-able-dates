@@ -47,6 +47,9 @@ export const en = {
     updateSuccess: "Listing updated successfully",
     startSingleError: "Error starting update",
     startAllError: "Error starting batch update",
+    cancelButton: "Cancel update",
+    cancelSuccess: "Update cancelled",
+    cancelError: "Error cancelling update",
   },
   alert: {
     defaultSuccess: "Operation successful",

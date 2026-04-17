@@ -47,6 +47,9 @@ export const es = {
     updateSuccess: "Listing actualizado correctamente",
     startSingleError: "Error al iniciar la actualización",
     startAllError: "Error al iniciar la actualización masiva",
+    cancelButton: "Cancelar actualización",
+    cancelSuccess: "Actualización cancelada",
+    cancelError: "Error al cancelar la actualización",
   },
   alert: {
     defaultSuccess: "Operación exitosa",

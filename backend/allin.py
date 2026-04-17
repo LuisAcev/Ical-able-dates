@@ -96,7 +96,7 @@ def apply_manual_extra_availability(listing_id, available_dates, stored_manual_d
 
     out = sorted(dates_set)
     added = len(out) - before
-    logger.info("Manual extra availability for %s: +%d dias manuales.", listing_id, added)
+    logger.info("Manual extra availability for %s: +%d manual dates.", listing_id, added)
     return out
 
 # Speed knobs cargados desde config.py via .env
@@ -566,21 +566,21 @@ def collect_available_dates(resort_code, listing_id, bedroom_filter):
         set_date_field(driver, "toDate", DATE_RANGE_END.strftime("%m/%d/%Y"), fast=False)
 
         if not robust_continue_in_exchange_form(driver, wait, max_retries=3):
-            logger.error("No se pudo hacer clic en Continue")
+            logger.error("Could not click Continue")
             return []
         if not wait_results_or_timeout(driver):
             return []
         if not click_any_unredeemed_vacation_exchange(driver, timeout=VACATION_EXCHANGE_TIMEOUT):
-            logger.error("No se pudo hacer clic en Vacation Exchange (Unredeemed Deposit).")
+            logger.error("Could not click Vacation Exchange (Unredeemed Deposit).")
             return []
         if not wait_results_or_timeout(driver):
             return []
         _ = click_more_dates_until_exhausted(driver, resort_code, pause=MORE_DATES_PAUSE)
         block = find_resort_block_by_code(driver, resort_code)
         if not block:
-            logger.error("No se encontro el bloque del resort: %s", resort_code)
+            logger.error("Resort block not found: %s", resort_code)
             return []
-        logger.info("Bloque del resort %s encontrado. Parseando...", resort_code)
+        logger.info("Resort block %s found. Parsing...", resort_code)
         available_dates = parse_availability_from_block(block, listing_id, bedroom_filter)
         return list(sorted(set(available_dates)))
     finally:
@@ -588,12 +588,12 @@ def collect_available_dates(resort_code, listing_id, bedroom_filter):
             try:
                 driver.quit()
             except Exception as e:
-                logger.warning("Error cerrando driver: %s", e)
+                logger.warning("Error closing driver: %s", e)
         t = threading.Thread(target=_quit_driver, daemon=True)
         t.start()
         t.join(timeout=10)
         if t.is_alive():
-            logger.warning("driver.quit() no respondio en 10s, forzando cierre de Chrome")
+            logger.warning("driver.quit() did not respond in 10s, force-killing Chrome")
             try:
                 if hasattr(driver, 'service') and hasattr(driver.service, 'process') and driver.service.process:
                     driver.service.process.kill()
@@ -602,31 +602,31 @@ def collect_available_dates(resort_code, listing_id, bedroom_filter):
 
 # ================== MAIN ==================
 def main():
-    logger.info("Iniciando scraper de Interval World -> iCal...")
+    logger.info("Starting Interval World -> iCal scraper...")
 
     # 1) LISTA PRINCIPAL (ordenado: 0 dormitorios, luego 2, luego resto)
     ordered_primary = sort_primary_listings_by_bedrooms(PRIMARY_LISTINGS)
     for prop in ordered_primary:
-        logger.info("Scraping %s (Listing ID: %s)...", prop['resort_code'], prop['listing_id'])
+        logger.info("Scraping %s (Listing ID: %s)...", prop["resort_code"], prop["listing_id"])
         try:
             available = collect_available_dates(prop["resort_code"], prop["listing_id"], PRIMARY_BEDROOM_FILTER)
             available = apply_manual_extra_availability(prop["listing_id"], available)
-            logger.info("%d dias disponibles encontrados.", len(available))
+            logger.info("%d available dates found.", len(available))
             generate_ics_for_listing(prop["listing_id"], available, DATE_RANGE_START, DATE_RANGE_END)
         except Exception as e:
             logger.exception("Error processing %s - %s: %s", prop['listing_id'], prop['resort_code'], e)
 
     # 2) LISTA SECUNDARIA (solo disponibilidad adicional)
     for prop in AVAILABILITY_ONLY_LISTINGS:
-        logger.info("Disponibilidad extra %s (Listing ID: %s)...", prop['resort_code'], prop['listing_id'])
+        logger.info("Extra availability %s (Listing ID: %s)...", prop["resort_code"], prop["listing_id"])
         try:
             available = collect_available_dates(prop["resort_code"], prop["listing_id"], SECONDARY_BEDROOM_FILTER)
             available = apply_manual_extra_availability(prop["listing_id"], available)
             generate_ics_for_listing(prop["listing_id"], available, DATE_RANGE_START, DATE_RANGE_END)
             if available:
-                logger.info("%d dias disponibles.", len(available))
+                logger.info("%d available dates.", len(available))
             else:
-                logger.info("Sin disponibilidad.")
+                logger.info("No availability.")
         except Exception as e:
             logger.exception("Error en %s (%s): %s", prop['listing_id'], prop['resort_code'], e)
 

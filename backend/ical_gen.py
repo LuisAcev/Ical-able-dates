@@ -148,7 +148,7 @@ def generate_ics_for_listing(listing_id, available_dates, range_start, range_end
         raise
 
     event_count = len(blocked_ranges)
-    logger.info("%s.ics generado (%d bloqueos)", listing_id, event_count)
+    logger.info("%s.ics generated (%d blocked ranges)", listing_id, event_count)
     return target_path
 
 

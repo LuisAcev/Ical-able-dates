@@ -59,7 +59,7 @@ def close_driver():
             try:
                 _driver.quit()
             except Exception as e:
-                logger.warning("Error cerrando driver Airbnb: %s", e)
+                logger.warning("Error closing Airbnb driver: %s", e)
             _driver = None
             _logged_in = False
 
@@ -80,7 +80,7 @@ def _ensure_logged_in(driver):
         )
 
     _logged_in = True
-    logger.info("Sesion activa OK")
+    logger.info("Active session OK")
 
 
 def manual_login():
@@ -143,7 +143,7 @@ def fetch_listing_details(listing_id):
         h1 = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "h1")))
         result["title"] = h1.text.strip()
     except Exception as e:
-        logger.warning("No se pudo obtener titulo: %s", e)
+        logger.warning("Could not get title: %s", e)
 
     # 2. Detalles (guests, bedrooms)
     try:
@@ -164,7 +164,7 @@ def fetch_listing_details(listing_id):
             if bed_match:
                 result["bedrooms"] = int(bed_match.group(1))
     except Exception as e:
-        logger.warning("No se pudieron obtener detalles: %s", e)
+        logger.warning("Could not get details: %s", e)
 
     # 3. Precio por noche
     try:
@@ -185,7 +185,7 @@ def fetch_listing_details(listing_id):
                     result["price_per_night"] = _extract_number(txt) or 0
                     break
         except Exception as e:
-            logger.warning("No se pudo obtener precio: %s", e)
+            logger.warning("Could not get price: %s", e)
 
     return result
 

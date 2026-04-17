@@ -79,6 +79,14 @@ export const listingsApi = createApi({
       providesTags: ['Status'],
     }),
 
+    cancelUpdate: builder.mutation({
+      query: () => ({
+        url: '/update/cancel',
+        method: 'POST',
+      }),
+      invalidatesTags: ['Status'],
+    }),
+
     getIcalBaseUrl: builder.query({
       query: () => '/settings/ical-base-url',
       providesTags: ['Settings'],
@@ -139,4 +147,5 @@ export const {
   useGetListingDatesQuery,
   useSaveManualDatesMutation,
   useRegenerateIcalMutation,
+  useCancelUpdateMutation,
 } = listingsApi;

@@ -14,7 +14,7 @@ export const Canvas = () => {
   const alertRef = useRef();
   const {
     listings, loading, error, updatingIds, isUpdating,
-    status, handleUpdateOne, handleUpdateAll, handleToggleIcal,
+    status, handleUpdateOne, handleUpdateAll, handleCancelUpdate, handleToggleIcal,
   } = useListingTable(alertRef);
 
   return (
@@ -24,6 +24,7 @@ export const Canvas = () => {
         <UpdateIcalButton
           isUpdating={isUpdating}
           handleUpdateAll={handleUpdateAll}
+          handleCancelUpdate={handleCancelUpdate}
           status={status}
         />
         <IcalBaseUrlInput alertRef={alertRef} />
