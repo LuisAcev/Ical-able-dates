@@ -90,11 +90,16 @@ def update_single_listing(listing_id):
     all_failed = len(failed_codes) == len(resort_codes)
     update_last_error(listing_id, True if (all_failed and failed_codes) else None)
 
+    # Guardar fechas crudas del scraper para regeneracion futura sin re-scrapear
+    listing["scraper_available_dates"] = sorted(all_available)
+    from storage import upsert_listing
+    upsert_listing(listing)
+
     ical_start = _effective_start(listing)
     available_list = sorted(d for d in all_available if d >= ical_start.strftime("%Y-%m-%d"))
     available_sorted = apply_manual_blocked_dates(available_list, [tuple(r) for r in (listing.get("manual_dates") or [])])
     available_sorted = apply_manual_available_override(available_sorted, [tuple(r) for r in (listing.get("available_override_dates") or [])])
-    generate_ics_for_listing(listing_id, available_sorted, ical_start, DATE_RANGE_END)
+    generate_ics_for_listing(listing_id, available_sorted, DATE_RANGE_START, DATE_RANGE_END)
     ts = update_timestamp(listing_id)
 
     return {

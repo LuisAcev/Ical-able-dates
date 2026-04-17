@@ -107,10 +107,10 @@ export const listingsApi = createApi({
     }),
 
     saveManualDates: builder.mutation({
-      query: ({ listingId, manual_dates, start_date = null }) => ({
+      query: ({ listingId, manual_dates, available_override_dates = [], start_date = null }) => ({
         url: `/listings/${listingId}/manual-dates`,
         method: 'PUT',
-        body: { manual_dates, start_date },
+        body: { manual_dates, available_override_dates, start_date },
       }),
       invalidatesTags: (result, error, { listingId }) => [
         { type: 'Dates', id: listingId },

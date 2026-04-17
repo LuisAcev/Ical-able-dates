@@ -479,20 +479,11 @@ async def api_regenerate_ical(listing_id: str):
     if not existing:
         raise HTTPException(status_code=404, detail="Listing no encontrado")
 
-    ics_path = Path(ICS_OUTPUT_DIR) / f"{listing_id}.ics"
-    if not ics_path.exists():
-        raise HTTPException(status_code=404, detail="No se encontro archivo .ics. Ejecuta una actualizacion primero.")
+    scraper_dates = existing.get("scraper_available_dates")
+    if not scraper_dates:
+        raise HTTPException(status_code=404, detail="No hay datos del scraper. Ejecuta una actualizacion primero.")
 
-    blocked_dates = parse_ics_file(listing_id)
-
-    from datetime import timedelta, datetime as dt
-    all_dates = set()
-    cur = DATE_RANGE_START
-    while cur <= DATE_RANGE_END:
-        all_dates.add(cur.strftime("%Y-%m-%d"))
-        cur += timedelta(days=1)
-
-    available_dates = list(all_dates - blocked_dates)
+    available_dates = list(scraper_dates)
 
     from allin import apply_manual_blocked_dates, apply_manual_available_override
     manual = [tuple(r) for r in (existing.get("manual_dates") or [])]
@@ -501,6 +492,7 @@ async def api_regenerate_ical(listing_id: str):
     available_dates = apply_manual_available_override(available_dates, overrides)
 
     # Aplicar start_date del listing si esta configurado
+    from datetime import datetime as dt
     raw_start = existing.get("start_date")
     ical_start = DATE_RANGE_START
     if raw_start:
@@ -512,7 +504,7 @@ async def api_regenerate_ical(listing_id: str):
             pass
 
     available_dates = [d for d in available_dates if d >= ical_start.strftime("%Y-%m-%d")]
-    generate_ics_for_listing(listing_id, available_dates, ical_start, DATE_RANGE_END)
+    generate_ics_for_listing(listing_id, available_dates, DATE_RANGE_START, DATE_RANGE_END)
     ts = update_timestamp(listing_id)
 
     return {"message": f"iCal regenerado para {listing_id}", "updated_at": ts}

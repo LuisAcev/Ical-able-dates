@@ -827,6 +827,7 @@ export const ListingTable = ({
         onClose={() => setCalendarDialog({ open: false, listingId: null })}
         listingId={calendarDialog.listingId}
         alertRef={alertRef}
+        onUpdateStarted={handleUpdateOne}
       />
     </Box>
   );

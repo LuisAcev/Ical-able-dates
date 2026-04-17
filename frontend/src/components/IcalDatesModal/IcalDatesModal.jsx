@@ -38,7 +38,6 @@ import { ListingCircularProgress } from "../ListingCircularProgress/ListingCircu
 import {
   useGetListingDatesQuery,
   useSaveManualDatesMutation,
-  useRegenerateIcalMutation,
 } from "../../store/api/api";
 import { t } from "../../i18n";
 
@@ -105,12 +104,11 @@ function CustomDay({ day, blockedSet, availableSet, manualSet, overrideSet, pend
   );
 }
 
-export const IcalDatesModal = ({ open, onClose, listingId, alertRef }) => {
+export const IcalDatesModal = ({ open, onClose, listingId, alertRef, onUpdateStarted }) => {
   const { data, isLoading, isError } = useGetListingDatesQuery(listingId, {
     skip: !open || !listingId,
   });
   const [saveManualDates] = useSaveManualDatesMutation();
-  const [regenerateIcal] = useRegenerateIcalMutation();
 
   const [localManual, setLocalManual] = useState([]);
   const [localOverride, setLocalOverride] = useState([]);
@@ -243,7 +241,7 @@ export const IcalDatesModal = ({ open, onClose, listingId, alertRef }) => {
         available_override_dates: localOverride,
         start_date: localStartDate ? localStartDate.format("YYYY-MM-DD") : null,
       }).unwrap();
-      await regenerateIcal(listingId).unwrap();
+      await onUpdateStarted(listingId);
       alertRef?.current?.showSuccess(t.icalDates.saveSuccess);
       onClose();
     } catch {
@@ -402,7 +400,7 @@ export const IcalDatesModal = ({ open, onClose, listingId, alertRef }) => {
                 {localManual.map(([start, end], idx) => (
                   <Chip
                     key={`${start}-${end}`}
-                    label={`${start} → ${end}`}
+                    label={`${start} → ${dayjs(end).subtract(1, "day").format("YYYY-MM-DD")}`}
                     onDelete={() => handleRemoveRange(idx)}
                     deleteIcon={<DeleteIcon sx={{ color: "#ef9a9a !important" }} />}
                     sx={{
@@ -428,7 +426,7 @@ export const IcalDatesModal = ({ open, onClose, listingId, alertRef }) => {
                 {localOverride.map(([start, end], idx) => (
                   <Chip
                     key={`ov-${start}-${end}`}
-                    label={`${start} → ${end}`}
+                    label={`${start} → ${dayjs(end).subtract(1, "day").format("YYYY-MM-DD")}`}
                     onDelete={() => setLocalOverride((prev) => prev.filter((_, i) => i !== idx))}
                     deleteIcon={<DeleteIcon sx={{ color: "#ef9a9a !important" }} />}
                     sx={{
