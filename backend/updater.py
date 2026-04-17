@@ -92,7 +92,7 @@ def update_single_listing(listing_id):
 
     ical_start = _effective_start(listing)
     available_list = sorted(d for d in all_available if d >= ical_start.strftime("%Y-%m-%d"))
-    available_sorted = apply_manual_blocked_dates(available_list, [tuple(r) for r in listing.get("manual_dates", [])] or [])
+    available_sorted = apply_manual_blocked_dates(available_list, [tuple(r) for r in (listing.get("manual_dates") or [])])
     generate_ics_for_listing(listing_id, available_sorted, ical_start, DATE_RANGE_END)
     ts = update_timestamp(listing_id)
 

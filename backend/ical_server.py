@@ -418,7 +418,7 @@ def api_toggle_ical(listing_id: str, data: IcalToggle):
 
 
 @app.get("/api/listings/{listing_id}/dates")
-def api_get_listing_dates(listing_id: str):
+async def api_get_listing_dates(listing_id: str):
     """Retorna fechas bloqueadas, disponibles y manuales para el calendario."""
     _validate_listing_id_param(listing_id)
     existing = get_listing(listing_id)
@@ -449,7 +449,7 @@ def api_get_listing_dates(listing_id: str):
 
 
 @app.put("/api/listings/{listing_id}/manual-dates")
-def api_save_manual_dates(listing_id: str, data: ManualDatesUpdate):
+async def api_save_manual_dates(listing_id: str, data: ManualDatesUpdate):
     """Guarda rangos de fechas manuales para un listing."""
     _validate_listing_id_param(listing_id)
     existing = get_listing(listing_id)
@@ -467,7 +467,7 @@ def api_save_manual_dates(listing_id: str, data: ManualDatesUpdate):
 
 
 @app.post("/api/listings/{listing_id}/regenerate-ical")
-def api_regenerate_ical(listing_id: str):
+async def api_regenerate_ical(listing_id: str):
     """Regenera el .ics usando datos existentes + fechas manuales, sin re-scrapear."""
     _validate_listing_id_param(listing_id)
     existing = get_listing(listing_id)
@@ -490,7 +490,7 @@ def api_regenerate_ical(listing_id: str):
     available_dates = list(all_dates - blocked_dates)
 
     from allin import apply_manual_blocked_dates
-    manual = [tuple(r) for r in existing.get("manual_dates", [])] or []
+    manual = [tuple(r) for r in (existing.get("manual_dates") or [])]
     available_dates = apply_manual_blocked_dates(available_dates, manual)
 
     # Aplicar start_date del listing si esta configurado
