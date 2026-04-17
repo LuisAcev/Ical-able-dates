@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
 import {
   useGetListingsQuery,
   useUpdateListingIcalMutation,
@@ -6,6 +7,7 @@ import {
   useGetStatusQuery,
   useToggleIcalMutation,
   useCancelUpdateMutation,
+  listingsApi,
 } from '../../../store/api/api';
 import { t } from '../../../i18n';
 
@@ -14,6 +16,7 @@ const POLLING_IDLE_MS = 15000;
 const SAFETY_TIMEOUT_MS = 10 * 60 * 1000;
 
 export const useListingTable = (alertRef) => {
+  const dispatch = useDispatch();
   const [updatingIds, setUpdatingIds] = useState(new Set());
   const [isBackendUpdating, setIsBackendUpdating] = useState(false);
   const wasUpdatingRef = useRef(false);
@@ -59,6 +62,7 @@ export const useListingTable = (alertRef) => {
       setUpdatingIds(new Set());
       updateInFlightRef.current = false;
       refetchListings();
+      dispatch(listingsApi.util.invalidateTags(['Dates']));
       if (hadError) {
         alertRef?.current?.showError(t.updateAll.updateError(hadError));
       } else {

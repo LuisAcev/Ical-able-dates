@@ -112,10 +112,7 @@ export const listingsApi = createApi({
         method: 'PUT',
         body: { manual_dates, available_override_dates, start_date },
       }),
-      invalidatesTags: (result, error, { listingId }) => [
-        { type: 'Dates', id: listingId },
-        'Listings',
-      ],
+      invalidatesTags: ['Listings'],
     }),
 
     regenerateIcal: builder.mutation({
