@@ -91,9 +91,11 @@ def update_single_listing(listing_id):
     update_last_error(listing_id, True if (all_failed and failed_codes) else None)
 
     # Guardar fechas crudas del scraper para regeneracion futura sin re-scrapear
-    listing["scraper_available_dates"] = sorted(all_available)
     from storage import upsert_listing
-    upsert_listing(listing)
+    fresh = get_listing(listing_id) or listing
+    fresh["scraper_available_dates"] = sorted(all_available)
+    upsert_listing(fresh)
+    listing = fresh
 
     ical_start = _effective_start(listing)
     available_list = sorted(d for d in all_available if d >= ical_start.strftime("%Y-%m-%d"))

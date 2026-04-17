@@ -480,7 +480,7 @@ async def api_regenerate_ical(listing_id: str):
         raise HTTPException(status_code=404, detail="Listing no encontrado")
 
     scraper_dates = existing.get("scraper_available_dates")
-    if not scraper_dates:
+    if scraper_dates is None:
         raise HTTPException(status_code=404, detail="No hay datos del scraper. Ejecuta una actualizacion primero.")
 
     available_dates = list(scraper_dates)
