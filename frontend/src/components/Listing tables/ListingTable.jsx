@@ -722,28 +722,30 @@ export const ListingTable = ({
               sx={textFieldSx}
             />
           </Box>
-          <TextField
-            fullWidth
-            size="small"
-            label={t.editListing.addressLabel}
-            placeholder={t.editListing.addressPlaceholder}
-            value={editForm.address}
-            onChange={(e) =>
-              setEditForm((p) => ({ ...p, address: e.target.value }))
-            }
-            sx={textFieldSx}
-          />
-          <TextField
-            fullWidth
-            size="small"
-            label={t.editListing.stateLabel}
-            placeholder={t.editListing.statePlaceholder}
-            value={editForm.state}
-            onChange={(e) =>
-              setEditForm((p) => ({ ...p, state: e.target.value }))
-            }
-            sx={textFieldSx}
-          />
+          <Box sx={{ display: "flex", gap: 3 }}>
+            <TextField
+              fullWidth
+              size="small"
+              label={t.editListing.addressLabel}
+              placeholder={t.editListing.addressPlaceholder}
+              value={editForm.address}
+              onChange={(e) =>
+                setEditForm((p) => ({ ...p, address: e.target.value }))
+              }
+              sx={textFieldSx}
+            />
+            <TextField
+              fullWidth
+              size="small"
+              label={t.editListing.stateLabel}
+              placeholder={t.editListing.statePlaceholder}
+              value={editForm.state}
+              onChange={(e) =>
+                setEditForm((p) => ({ ...p, state: e.target.value }))
+              }
+              sx={textFieldSx}
+            />
+          </Box>
           <Button
             onClick={handleRequestDelete}
             variant="contained"

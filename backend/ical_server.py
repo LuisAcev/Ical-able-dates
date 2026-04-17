@@ -18,6 +18,11 @@ import re
 import subprocess
 import threading
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 logger = logging.getLogger(__name__)
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -620,11 +625,6 @@ def api_status():
 # ================== MAIN ==================
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
     os.makedirs(ICS_OUTPUT_DIR, exist_ok=True)
     uvicorn.run(
         "ical_server:app",
