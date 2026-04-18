@@ -63,6 +63,30 @@ async def _auto_update_loop():
         await asyncio.sleep(AUTO_UPDATE_HOURS * 3600)
 
 
+async def _auto_retry_error_loop():
+    """Reintenta listings con error cada RETRY_ERROR_HOURS horas."""
+    retry_hours = int(os.getenv("RETRY_ERROR_HOURS", "2"))
+    await asyncio.sleep(300)
+    loop = asyncio.get_running_loop()
+    while True:
+        await asyncio.sleep(retry_hours * 3600)
+        try:
+            failed = [l for l in load_listings() if l.get("last_error")]
+            if not failed:
+                continue
+            logger.info("Auto-retry: %d listing(s) con error, reintentando...", len(failed))
+            for listing in failed:
+                with _update_lock:
+                    if _update_status["updating"]:
+                        logger.info("Auto-retry: update en curso, saltando.")
+                        break
+                lid = listing["listing_id"]
+                logger.info("Auto-retry: actualizando listing %s", lid)
+                await loop.run_in_executor(None, lambda l=lid: _run_update_single(l))
+        except Exception as e:
+            logger.exception("Auto-retry: error inesperado: %s", e)
+
+
 @asynccontextmanager
 async def lifespan(_app):
     """Inicializa la data de listings si no existe."""
@@ -76,8 +100,10 @@ async def lifespan(_app):
     ensure_last_error_field()
     ensure_available_override_field()
     task = asyncio.create_task(_auto_update_loop())
+    retry_task = asyncio.create_task(_auto_retry_error_loop())
     yield
     task.cancel()
+    retry_task.cancel()
     try:
         await task
     except asyncio.CancelledError:
