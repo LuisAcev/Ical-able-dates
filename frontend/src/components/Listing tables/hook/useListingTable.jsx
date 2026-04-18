@@ -77,6 +77,7 @@ export const useListingTable = (alertRef) => {
     updateInFlightRef.current = true;
     try {
       setUpdatingIds(new Set([listingId]));
+      wasUpdatingRef.current = true;
       await updateIcal(listingId).unwrap();
     } catch (err) {
       setUpdatingIds(new Set());
@@ -120,6 +121,7 @@ export const useListingTable = (alertRef) => {
     try {
       const allIds = new Set(listings.map((l) => l.listing_id));
       setUpdatingIds(allIds);
+      wasUpdatingRef.current = true;
       await updateAll().unwrap();
     } catch (err) {
       setUpdatingIds(new Set());
