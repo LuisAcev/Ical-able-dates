@@ -340,7 +340,7 @@ export const ListingTable = ({
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
             <Box sx={{ width: 22, display: "flex", alignItems: "center", flexShrink: 0 }}>
               {lastError && (
-                <Tooltip title={t.listingTable.lastErrorTooltip} arrow>
+                <Tooltip title={typeof lastError === "string" ? lastError : t.listingTable.lastErrorTooltip} arrow>
                   <WarningAmberIcon sx={{ color: "#ffa726", fontSize: 18 }} />
                 </Tooltip>
               )}

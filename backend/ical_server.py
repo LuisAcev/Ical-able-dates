@@ -17,6 +17,7 @@ import os
 import re
 import subprocess
 import threading
+import time
 
 logging.basicConfig(
     level=logging.INFO,
@@ -105,10 +106,11 @@ async def lifespan(_app):
     yield
     task.cancel()
     retry_task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
+    for t in (task, retry_task):
+        try:
+            await t
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(title="AVI iCalendar Server", lifespan=lifespan)
@@ -316,9 +318,9 @@ async def api_get_listings():
     """Retorna todos los listings con sus detalles y timestamps."""
     base_url = get_setting("ical_base_url", ICAL_BASE_URL)
     listings = load_listings()
+    existing_ics = {p.stem for p in Path(ICS_OUTPUT_DIR).glob("*.ics")}
     for l in listings:
-        ics_path = Path(ICS_OUTPUT_DIR) / f"{l['listing_id']}.ics"
-        l["has_ical"] = ics_path.exists()
+        l["has_ical"] = l["listing_id"] in existing_ics
         l["ical_url"] = f"{base_url}/ical/{l['listing_id']}.ics" if base_url else ""
         l.pop("IcalURL", None)
     return {"listings": listings}
@@ -541,9 +543,10 @@ def _kill_chrome_zombies():
     """Mata procesos Chrome/chromedriver zombies antes de iniciar un run."""
     for name in ("chrome", "chromedriver"):
         try:
-            subprocess.run(["pkill", "-f", name], capture_output=True)
+            subprocess.run(["pkill", "-9", "-f", name], capture_output=True)
         except Exception:
             pass
+    time.sleep(2)
 
 
 def _set_status(**kwargs):

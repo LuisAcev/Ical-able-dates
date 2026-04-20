@@ -14,7 +14,7 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 from config import DATE_RANGE_START, DATE_RANGE_END
-from allin import collect_available_dates, apply_manual_extra_availability, apply_manual_blocked_dates, apply_manual_available_override
+from allin import collect_available_dates, apply_manual_blocked_dates, apply_manual_available_override
 from ical_gen import generate_ics_for_listing
 from storage import load_listings, get_listing, update_timestamp, update_last_error
 
@@ -69,7 +69,6 @@ def update_single_listing(listing_id):
     bedroom_filter = {listing_id: bedrooms}
 
     all_available = set()
-    manual = [tuple(r) for r in listing.get("manual_dates", [])] or None
     failed_codes = []
 
     for resort_code in resort_codes:
@@ -88,7 +87,20 @@ def update_single_listing(listing_id):
                     failed_codes.append(resort_code)
 
     all_failed = len(failed_codes) == len(resort_codes)
-    update_last_error(listing_id, True if (all_failed and failed_codes) else None)
+
+    if all_failed and failed_codes:
+        error_msg = f"Scraping fallido para: {', '.join(failed_codes)}"
+        update_last_error(listing_id, error_msg)
+        logger.warning("Listing %s: todos los scrapers fallaron, iCal sin cambios.", listing_id)
+        return {
+            "listing_id": listing_id,
+            "dates_found": 0,
+            "updated_at": listing.get("last_updated"),
+            "error": error_msg,
+        }
+
+    partial_error = f"Scraping fallido para: {', '.join(failed_codes)}" if failed_codes else None
+    update_last_error(listing_id, partial_error)
 
     # Guardar fechas crudas del scraper para regeneracion futura sin re-scrapear
     from storage import upsert_listing

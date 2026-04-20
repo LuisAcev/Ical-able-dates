@@ -82,6 +82,7 @@ export const useListingTable = (alertRef) => {
     } catch (err) {
       setUpdatingIds(new Set());
       updateInFlightRef.current = false;
+      wasUpdatingRef.current = false;
       alertRef?.current?.showError(
         err?.data?.detail || t.updateAll.startSingleError
       );
@@ -126,6 +127,7 @@ export const useListingTable = (alertRef) => {
     } catch (err) {
       setUpdatingIds(new Set());
       updateInFlightRef.current = false;
+      wasUpdatingRef.current = false;
       alertRef?.current?.showError(
         err?.data?.detail || t.updateAll.startAllError
       );
@@ -137,6 +139,7 @@ export const useListingTable = (alertRef) => {
       await cancelUpdate().unwrap();
       setUpdatingIds(new Set());
       updateInFlightRef.current = false;
+      wasUpdatingRef.current = false;
       alertRef?.current?.showSuccess(t.updateAll.cancelSuccess);
     } catch (err) {
       alertRef?.current?.showError(err?.data?.detail || t.updateAll.cancelError);

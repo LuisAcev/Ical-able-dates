@@ -129,6 +129,9 @@ export const IcalDatesModal = ({ open, onClose, listingId, alertRef, onUpdateSta
     if (!open) {
       setPendingDate(null);
       setPendingOverrideDate(null);
+      setLocalManual([]);
+      setLocalOverride([]);
+      setLocalStartDate(null);
     }
   }, [open]);
 
