@@ -83,6 +83,7 @@ async def _auto_retry_error_loop():
                 lid = listing["listing_id"]
                 logger.info("Auto-retry: actualizando listing %s", lid)
                 await loop.run_in_executor(None, lambda l=lid: _run_update_single(l))
+                await asyncio.sleep(30)
         except Exception as e:
             logger.exception("Auto-retry: error inesperado: %s", e)
 
