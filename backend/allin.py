@@ -260,6 +260,7 @@ def create_driver():
     opts.add_argument("--js-flags=--max-old-space-size=192")
     opts.add_argument("--disable-software-rasterizer")
     opts.add_argument("--disable-features=VizDisplayCompositor")
+    opts.add_argument("--single-process")
     opts.add_experimental_option("excludeSwitches", ["enable-logging"])
     chromedriver_path = shutil.which("chromedriver") or "/usr/local/bin/chromedriver"
     service = Service(executable_path=chromedriver_path, log_output=subprocess.DEVNULL)
