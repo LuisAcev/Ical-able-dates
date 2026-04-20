@@ -73,7 +73,7 @@ def update_single_listing(listing_id):
     all_available = set()
     failed_codes = []
 
-    for resort_code in resort_codes:
+    for i, resort_code in enumerate(resort_codes):
         for attempt in range(2):
             try:
                 logger.info("Scraping %s for listing %s (attempt %d)...", resort_code, listing_id, attempt + 1)
@@ -87,13 +87,14 @@ def update_single_listing(listing_id):
                 else:
                     logger.error("Error scraping %s after 2 attempts: %s", resort_code, e)
                     failed_codes.append(resort_code)
-        # Asegurar que Chrome murio antes de lanzar el siguiente resort code
-        for name in ("chrome", "chromedriver"):
-            try:
-                subprocess.run(["pkill", "-9", "-f", name], capture_output=True)
-            except Exception:
-                pass
-        time.sleep(5)
+        # Entre resort codes: asegurar que Chrome murio antes de lanzar el siguiente
+        if i < len(resort_codes) - 1:
+            for name in ("chrome", "chromedriver"):
+                try:
+                    subprocess.run(["pkill", "-9", "-f", name], capture_output=True)
+                except Exception:
+                    pass
+            time.sleep(5)
 
     all_failed = len(failed_codes) == len(resort_codes)
 

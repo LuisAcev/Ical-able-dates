@@ -353,6 +353,29 @@ def fast_set_resort_code(driver, resort_code):
             pass
     time.sleep(0.6 * SPEED_FACTOR)
 
+def select_guests_in_exchange_form(driver):
+    """Selecciona al menos 1 adulto en el dropdown de Guests del formulario de busqueda."""
+    try:
+        form = get_exchange_form(driver)
+        container = form if form else driver
+        selects = container.find_elements(By.XPATH, ".//select[contains(@name,'uest') or contains(@id,'uest') or contains(@name,'dult') or contains(@id,'dult')]")
+        if not selects:
+            selects = container.find_elements(By.TAG_NAME, "select")
+        for sel in selects:
+            options = sel.find_elements(By.TAG_NAME, "option")
+            non_empty = [o for o in options if o.get_attribute("value") and o.get_attribute("value") != "0"]
+            if non_empty:
+                driver.execute_script(
+                    "arguments[0].value=arguments[1];"
+                    "arguments[0].dispatchEvent(new Event('change',{bubbles:true}));",
+                    sel, non_empty[0].get_attribute("value")
+                )
+                logger.info("Guests selected: %s", non_empty[0].text)
+                return
+    except Exception as e:
+        logger.warning("Could not select guests: %s", e)
+
+
 def robust_continue_in_exchange_form(driver, wait, max_retries=3):
     def get_btn(form):
         btn = form.find_elements(By.XPATH, ".//input[@id='exchange_form_continue_btn']")
@@ -609,6 +632,7 @@ def collect_available_dates(resort_code, listing_id, bedroom_filter):
         # fromDate rápido (JS), toDate estándar
         set_date_field(driver, "fromDate", DATE_RANGE_START.strftime("%m/%d/%Y"), fast=True)
         set_date_field(driver, "toDate", DATE_RANGE_END.strftime("%m/%d/%Y"), fast=False)
+        select_guests_in_exchange_form(driver)
 
         if not robust_continue_in_exchange_form(driver, wait, max_retries=3):
             logger.error("Could not click Continue")
