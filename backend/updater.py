@@ -9,6 +9,8 @@ y generate_ics_for_listing de ical_gen.py.
 """
 
 import logging
+import subprocess
+import time
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -85,6 +87,13 @@ def update_single_listing(listing_id):
                 else:
                     logger.error("Error scraping %s after 2 attempts: %s", resort_code, e)
                     failed_codes.append(resort_code)
+        # Asegurar que Chrome murio antes de lanzar el siguiente resort code
+        for name in ("chrome", "chromedriver"):
+            try:
+                subprocess.run(["pkill", "-9", "-f", name], capture_output=True)
+            except Exception:
+                pass
+        time.sleep(5)
 
     all_failed = len(failed_codes) == len(resort_codes)
 
