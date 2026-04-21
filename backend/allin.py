@@ -347,39 +347,59 @@ def _apply_guests_modal(context, timeout=4000):
         return False
 
 
-def select_guests_in_exchange_form(frame):
-    """Abre el widget de Guests haciendo click, luego aplica 1 adulto en el modal."""
-    try:
-        guest_el = None
-        for q in ["[id*='uest']", "[class*='uest']", "[id*='eople']", "[class*='eople']",
-                  "[id*='dult']", "[class*='dult']"]:
-            guest_el = frame.query_selector(q)
-            if guest_el:
+def _open_guests_dropdown(frame):
+    """Intenta abrir el dropdown de Guests probando distintas estrategias de click.
+    Retorna True si el modal aparecio, False si no."""
+    # El contenedor conocido del widget de Guests
+    container = frame.query_selector("#exchange_form_Number_of_guest")
+    if not container:
+        # Fallback: buscar por atributos genéricos
+        for q in ["[id*='uest']", "[class*='uest']", "[id*='eople']", "[class*='eople']"]:
+            container = frame.query_selector(q)
+            if container:
                 break
 
-        if guest_el:
-            tag = guest_el.evaluate("el => el.tagName")
-            el_id = guest_el.get_attribute("id") or ""
-            el_cls = guest_el.get_attribute("class") or ""
-            logger.info("Guests: found <%s id='%s' class='%s'>, clicking...", tag, el_id, el_cls[:60])
-            guest_el.scroll_into_view_if_needed()
-            guest_el.click()
-            time.sleep(1.0 * SPEED_FACTOR)
-        else:
-            logger.warning("Guests: no dropdown element found")
+    if not container:
+        logger.warning("Guests: widget container not found")
+        return False
 
-        if not _apply_guests_modal(frame):
-            # Retry: segundo click en caso de que el primero no haya abierto el modal
-            if guest_el:
-                try:
-                    logger.info("Guests: retrying click...")
-                    guest_el.click()
-                    time.sleep(1.2 * SPEED_FACTOR)
-                except Exception:
-                    pass
-            if not _apply_guests_modal(frame):
-                logger.warning("Guests: modal did not appear after 2 attempts")
+    container.scroll_into_view_if_needed()
 
+    # Estrategia 1: click en el primer hijo clickeable dentro del contenedor
+    trigger = container.query_selector("button, a, input, span, div")
+    if trigger:
+        logger.info("Guests: clicking inner trigger <%s>", trigger.evaluate("el => el.tagName"))
+        trigger.click()
+        time.sleep(1.0 * SPEED_FACTOR)
+        if _apply_guests_modal(frame):
+            return True
+
+    # Estrategia 2: click directo en el contenedor
+    logger.info("Guests: clicking container directly")
+    container.click()
+    time.sleep(1.0 * SPEED_FACTOR)
+    if _apply_guests_modal(frame):
+        return True
+
+    # Estrategia 3: mousedown+mouseup+click via JS para widgets que escuchan mousedown
+    logger.info("Guests: dispatching mousedown via JS")
+    frame.evaluate(
+        """(el) => {
+            ['mousedown','mouseup','click'].forEach(evt =>
+                el.dispatchEvent(new MouseEvent(evt, {bubbles: true, cancelable: true}))
+            );
+        }""",
+        container,
+    )
+    time.sleep(1.0 * SPEED_FACTOR)
+    return _apply_guests_modal(frame)
+
+
+def select_guests_in_exchange_form(frame):
+    """Abre el widget de Guests y aplica 1 adulto en el modal."""
+    try:
+        if not _open_guests_dropdown(frame):
+            logger.warning("Guests: modal did not open after all strategies")
     except Exception as e:
         logger.warning("Could not select guests: %s", e)
 
