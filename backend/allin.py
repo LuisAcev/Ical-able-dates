@@ -312,12 +312,12 @@ def fast_set_resort_code(frame, resort_code):
     time.sleep(0.6 * SPEED_FACTOR)
 
 
-def _apply_guests_modal(context):
+def _apply_guests_modal(context, timeout=4000):
     """Si hay un modal de Guests visible, asegura 1 adulto y hace click en Apply.
     context puede ser Page o Frame. Retorna True si manejó el modal."""
     try:
         apply_btn = context.wait_for_selector(
-            "button:has-text('Apply')", timeout=4000, state="visible"
+            "button:has-text('Apply')", timeout=timeout, state="visible"
         )
         # El contador de adultos está entre los botones [-] y [+]
         plus_btns = context.query_selector_all("xpath=//button[normalize-space(text())='+']")
@@ -358,9 +358,12 @@ def select_guests_in_exchange_form(frame):
                 break
 
         if guest_el:
+            tag = guest_el.evaluate("el => el.tagName")
+            el_id = guest_el.get_attribute("id") or ""
+            el_cls = guest_el.get_attribute("class") or ""
+            logger.info("Guests: found <%s id='%s' class='%s'>, clicking...", tag, el_id, el_cls[:60])
             guest_el.scroll_into_view_if_needed()
             guest_el.click()
-            logger.info("Guests: clicked dropdown to open modal")
             time.sleep(1.0 * SPEED_FACTOR)
         else:
             logger.warning("Guests: no dropdown element found")
@@ -369,8 +372,9 @@ def select_guests_in_exchange_form(frame):
             # Retry: segundo click en caso de que el primero no haya abierto el modal
             if guest_el:
                 try:
+                    logger.info("Guests: retrying click...")
                     guest_el.click()
-                    time.sleep(1.0 * SPEED_FACTOR)
+                    time.sleep(1.2 * SPEED_FACTOR)
                 except Exception:
                     pass
             if not _apply_guests_modal(frame):
@@ -390,7 +394,7 @@ def robust_continue_in_exchange_form(page, max_retries=4):
         )
 
     for attempt in range(1, max_retries + 1):
-        _apply_guests_modal(page)
+        _apply_guests_modal(page, timeout=800)
         frame = get_exchange_frame(page)
         if frame is None:
             return True
@@ -405,7 +409,7 @@ def robust_continue_in_exchange_form(page, max_retries=4):
             time.sleep(0.7 * SPEED_FACTOR)
 
         # Si el click abrio el modal de guests, manejarlo y reintentar
-        if _apply_guests_modal(page):
+        if _apply_guests_modal(page, timeout=800):
             time.sleep(0.3)
             continue
 
