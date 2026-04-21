@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# interval_all.py
+# allin.py
 # Scraper de disponibilidad Interval World -> generacion iCalendar (.ics)
 #
 # 1) LISTA PRINCIPAL: busca disponibilidad completa en Interval.
@@ -33,9 +33,6 @@ from listings import (
     SECONDARY_BEDROOM_FILTER, AVAILABILITY_ONLY_LISTINGS,
     MANUAL_EXTRA_AVAIL,
 )
-
-USERNAME = INTERVAL_USERNAME
-PASSWORD = INTERVAL_PASSWORD
 
 _BROWSER_ARGS = [
     "--no-sandbox",
@@ -108,9 +105,10 @@ def apply_manual_blocked_dates(available_dates, manual_ranges):
         while cur < end_dt:
             blocked_manual.add(cur.strftime("%Y-%m-%d"))
             cur += timedelta(days=1)
-    removed = len(blocked_manual)
+    result = [d for d in available_dates if d not in blocked_manual]
+    removed = len(available_dates) - len(result)
     logger.info("Manual blocked dates: -%d dates removed from available.", removed)
-    return [d for d in available_dates if d not in blocked_manual]
+    return result
 
 
 def apply_manual_available_override(available_dates, override_ranges):
@@ -264,8 +262,8 @@ def login_and_go_to_exchange(page):
     page.goto("https://www.intervalworld.com/web/my/auth/loginPage", wait_until="domcontentloaded")
     dismiss_cookie_banner(page)
     page.wait_for_selector("[name='j_username']", timeout=25000)
-    page.fill("[name='j_username']", USERNAME)
-    page.fill("[name='j_password']", PASSWORD)
+    page.fill("[name='j_username']", INTERVAL_USERNAME)
+    page.fill("[name='j_password']", INTERVAL_PASSWORD)
     page.wait_for_selector("#buttonlogin")
     page.click("#buttonlogin")
     page.wait_for_selector(
@@ -314,85 +312,74 @@ def fast_set_resort_code(frame, resort_code):
     time.sleep(0.6 * SPEED_FACTOR)
 
 
-def select_guests_in_exchange_form(frame):
-    """Selecciona al menos 1 adulto en el widget de Guests del formulario."""
+def _apply_guests_modal(context):
+    """Si hay un modal de Guests visible, asegura 1 adulto y hace click en Apply.
+    context puede ser Page o Frame. Retorna True si manejó el modal."""
     try:
-        # Buscar el select de guests
-        sel = None
-        for q in ["select[id*='uest']", "select[name*='uest']", "select[id*='dult']", "select[name*='dult']"]:
-            sel = frame.query_selector(q)
-            if sel:
-                break
-        if not sel:
-            for s in frame.query_selector_all("select"):
-                opts = s.query_selector_all("option")
-                if any("adult" in (o.text_content() or "").lower() for o in opts):
-                    sel = s
-                    break
-
-        if sel:
-            options = sel.query_selector_all("option")
-            target = next(
-                (o for o in options
-                 if o.get_attribute("value")
-                 and o.get_attribute("value") != "0"
-                 and "0 adult" not in (o.text_content() or "").lower()),
-                None
-            )
-            if target:
-                sel.select_option(value=target.get_attribute("value"))
-                logger.info("Guests set: %s", (target.text_content() or "").strip())
-                time.sleep(0.5 * SPEED_FACTOR)
-
-        # Si aparecio un modal con boton Apply, manejarlo
-        try:
-            apply_btn = frame.wait_for_selector(
-                "button:has-text('Apply')", timeout=2000, state="visible"
-            )
-            # Si el contador de adultos esta en 0, hacer click en el primer boton +
-            plus_btns = frame.query_selector_all("xpath=//button[normalize-space(text())='+']")
-            if plus_btns:
-                # El primer + es el de adultos
-                adults_counter = frame.evaluate("""
-                    () => {
-                        const btns = document.querySelectorAll('button');
-                        for (const b of btns) {
-                            if (b.textContent.trim() === '+') {
-                                const section = b.closest('div');
-                                if (section) {
-                                    const nums = section.querySelectorAll('span, div, p');
-                                    for (const n of nums) {
-                                        const v = parseInt(n.textContent.trim());
-                                        if (!isNaN(v)) return v;
-                                    }
-                                }
-                            }
-                        }
-                        return 1;
+        apply_btn = context.wait_for_selector(
+            "button:has-text('Apply')", timeout=2000, state="visible"
+        )
+        # El contador de adultos está entre los botones [-] y [+]
+        plus_btns = context.query_selector_all("xpath=//button[normalize-space(text())='+']")
+        if plus_btns:
+            adults_n = context.evaluate(
+                """(btn) => {
+                    let el = btn.previousElementSibling;
+                    while (el) {
+                        const n = parseInt(el.textContent.trim());
+                        if (!isNaN(n) && n >= 0) return n;
+                        el = el.previousElementSibling;
                     }
-                """)
-                if adults_counter == 0:
-                    plus_btns[0].click()
-                    time.sleep(0.3)
-            apply_btn.click()
-            logger.info("Guests modal Applied")
-            time.sleep(0.3 * SPEED_FACTOR)
-        except PlaywrightTimeoutError:
-            pass
+                    return -1;
+                }""",
+                plus_btns[0],
+            )
+            logger.info("Guests modal open: adults_count=%s", adults_n)
+            if adults_n <= 0:
+                plus_btns[0].click()
+                time.sleep(0.3)
+                logger.info("Guests: clicked + for adults")
+        apply_btn.click()
+        logger.info("Guests modal Applied")
+        time.sleep(0.5 * SPEED_FACTOR)
+        return True
+    except PlaywrightTimeoutError:
+        return False
+
+
+def select_guests_in_exchange_form(frame):
+    """Abre el widget de Guests haciendo click, luego aplica 1 adulto en el modal."""
+    try:
+        guest_el = None
+        for q in ["[id*='uest']", "[class*='uest']", "[id*='eople']", "[class*='eople']",
+                  "[id*='dult']", "[class*='dult']"]:
+            guest_el = frame.query_selector(q)
+            if guest_el:
+                break
+
+        if guest_el:
+            guest_el.scroll_into_view_if_needed()
+            guest_el.click()
+            logger.info("Guests: clicked dropdown to open modal")
+            time.sleep(0.6 * SPEED_FACTOR)
+        else:
+            logger.warning("Guests: no dropdown element found")
+
+        if not _apply_guests_modal(frame):
+            logger.warning("Guests: modal did not appear after click")
 
     except Exception as e:
         logger.warning("Could not select guests: %s", e)
 
 
-def robust_continue_in_exchange_form(page, max_retries=3):
+def robust_continue_in_exchange_form(page, max_retries=4):
     def get_btn(frame):
         btn = frame.query_selector("#exchange_form_continue_btn")
         if btn:
             return btn
-        btn = frame.query_selector(
+        return frame.query_selector(
             "input[type='submit'][value='Continue'], input[type='submit'][value='continue']"
         )
-        return btn
 
     for attempt in range(1, max_retries + 1):
         frame = get_exchange_frame(page)
@@ -407,6 +394,12 @@ def robust_continue_in_exchange_form(page, max_retries=3):
             except Exception:
                 _js_click(btn)
             time.sleep(0.7 * SPEED_FACTOR)
+
+        # Si el click abrio el modal de guests, manejarlo y reintentar
+        if _apply_guests_modal(page):
+            time.sleep(0.3)
+            continue
+
         if page.url == prev_url:
             try:
                 frame.evaluate("document.querySelector('form').submit()")
@@ -625,18 +618,25 @@ def parse_availability_from_block(block, listing_id, bedroom_filter):
     return sorted(dates)
 
 
-def wait_results_or_timeout(page):
-    try:
-        page.wait_for_function(
-            "() => !!(document.querySelector('.table_frame') || "
-            "document.body.innerHTML.toLowerCase().includes('no availability'))",
-            timeout=int(20 * SPEED_FACTOR * 1000),
-        )
-        time.sleep(0.8 * SPEED_FACTOR)
-        return True
-    except PlaywrightTimeoutError:
-        logger.info("No results appeared - treating as NO AVAILABILITY for this period.")
-        return False
+def wait_results_or_timeout(page, label=""):
+    deadline = time.time() + int(20 * SPEED_FACTOR)
+    while time.time() < deadline:
+        for frame in page.frames:
+            try:
+                if frame.query_selector(".table_frame"):
+                    time.sleep(0.8 * SPEED_FACTOR)
+                    return True
+                content = frame.evaluate(
+                    "() => document.body ? document.body.innerHTML.toLowerCase() : ''"
+                )
+                if "no availability" in content:
+                    time.sleep(0.8 * SPEED_FACTOR)
+                    return True
+            except Exception:
+                pass
+        time.sleep(0.5)
+    logger.warning("No results appeared [%s] url=%s", label, page.url)
+    return False
 
 
 # ---------- Recoleccion ----------
@@ -651,29 +651,48 @@ def collect_available_dates(resort_code, listing_id, bedroom_filter):
         page.set_default_navigation_timeout(60000)
         page_ref = [page]
         try:
+            logger.info("[1] Logging in...")
             login_and_go_to_exchange(page_ref[0])
+            logger.info("[2] Logged in. url=%s", page_ref[0].url)
+
             frame = get_exchange_frame(page_ref[0]) or page_ref[0]
+            logger.info("[3] Exchange frame: %s", "page" if frame == page_ref[0] else "iframe")
+
             fast_set_resort_code(frame, resort_code)
             set_date_field(frame, "fromDate", DATE_RANGE_START.strftime("%m/%d/%Y"), fast=True)
             set_date_field(frame, "toDate", DATE_RANGE_END.strftime("%m/%d/%Y"), fast=False)
             select_guests_in_exchange_form(frame)
+            logger.info("[4] Form filled. Clicking Continue...")
 
             if not robust_continue_in_exchange_form(page_ref[0]):
-                logger.error("Could not click Continue")
+                logger.error("[5] Could not click Continue. url=%s", page_ref[0].url)
                 return []
-            if not wait_results_or_timeout(page_ref[0]):
+            logger.info("[5] Continue OK. url=%s", page_ref[0].url)
+
+            if not wait_results_or_timeout(page_ref[0], "after-continue"):
                 return []
+            logger.info("[6] Results page loaded. url=%s", page_ref[0].url)
+
             if not click_any_unredeemed_vacation_exchange(page_ref, timeout=VACATION_EXCHANGE_TIMEOUT):
-                logger.error("Could not click Vacation Exchange (Unredeemed Deposit).")
+                logger.error("[7] Could not click Vacation Exchange. url=%s", page_ref[0].url)
                 return []
-            if not wait_results_or_timeout(page_ref[0]):
+            logger.info("[7] Vacation Exchange clicked. url=%s", page_ref[0].url)
+
+            if not wait_results_or_timeout(page_ref[0], "after-vexchange"):
                 return []
+            logger.info("[8] Exchange results loaded.")
+
+            url_before_more = page_ref[0].url
             _ = click_more_dates_until_exhausted(page_ref[0], resort_code, pause=MORE_DATES_PAUSE)
+            # If "more dates" navigated to a new page, wait for it to fully render
+            if page_ref[0].url != url_before_more:
+                logger.info("[8b] Navigated to %s after more-dates, waiting for results...", page_ref[0].url)
+                wait_results_or_timeout(page_ref[0], "after-more-dates")
             block = find_resort_block_by_code(page_ref[0], resort_code)
             if not block:
-                logger.error("Resort block not found: %s", resort_code)
+                logger.error("[9] Resort block not found: %s. url=%s", resort_code, page_ref[0].url)
                 return []
-            logger.info("Resort block %s found. Parsing...", resort_code)
+            logger.info("[9] Resort block %s found. Parsing...", resort_code)
             available_dates = parse_availability_from_block(block, listing_id, bedroom_filter)
             return list(sorted(set(available_dates)))
         finally:
