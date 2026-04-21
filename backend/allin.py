@@ -10,22 +10,12 @@
 #
 # Configuracion: .env | Listings: listings.py | iCal: ical_gen.py
 
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.keys import Keys
-from selenium.common.exceptions import TimeoutException
+from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
 from datetime import datetime, timedelta
 import logging
-import shutil
-import subprocess
-import threading
-import time, re
+import time
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -47,14 +37,20 @@ from listings import (
 USERNAME = INTERVAL_USERNAME
 PASSWORD = INTERVAL_PASSWORD
 
+_BROWSER_ARGS = [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--no-zygote",
+    "--disable-dev-shm-usage",
+    "--disable-gpu",
+    "--ozone-platform=headless",
+    "--disable-software-rasterizer",
+    "--blink-settings=imagesEnabled=false",
+    "--js-flags=--max-old-space-size=192",
+]
+
 # ========= ORDEN ESPECIAL: primero 0 cuartos, luego 2 cuartos, luego resto =========
 def sort_primary_listings_by_bedrooms(listings):
-    """
-    Orden:
-      1) Estudios (0 dormitorios)
-      2) 2 dormitorios
-      3) Lo demás (1, 3, etc.)
-    """
     def sort_key(prop):
         lid = prop["listing_id"]
         beds = PRIMARY_BEDROOM_FILTER.get(lid)
@@ -67,17 +63,14 @@ def sort_primary_listings_by_bedrooms(listings):
         return (group, lid)
     return sorted(listings, key=sort_key)
 
+
 def apply_manual_extra_availability(listing_id, available_dates, stored_manual_dates=None):
-    """
-    Añade manualmente rangos de disponibilidad extra a la lista de available_dates
-    usando la misma lógica que Interval (incluye start, excluye end).
-    Si stored_manual_dates tiene datos, los usa. Si no, fallback a MANUAL_EXTRA_AVAIL.
-    """
     if stored_manual_dates:
         ranges = stored_manual_dates
     else:
-        # Fallback: buscar en dict hardcodeado con string e int keys
-        ranges = MANUAL_EXTRA_AVAIL.get(str(listing_id)) or MANUAL_EXTRA_AVAIL.get(int(listing_id) if str(listing_id).isdigit() else listing_id)
+        ranges = MANUAL_EXTRA_AVAIL.get(str(listing_id)) or MANUAL_EXTRA_AVAIL.get(
+            int(listing_id) if str(listing_id).isdigit() else listing_id
+        )
     if not ranges:
         return available_dates
 
@@ -103,7 +96,6 @@ def apply_manual_extra_availability(listing_id, available_dates, stored_manual_d
 
 
 def apply_manual_blocked_dates(available_dates, manual_ranges):
-    """Remove manually blocked date ranges from available dates."""
     if not manual_ranges:
         return available_dates
     blocked_manual = set()
@@ -122,7 +114,6 @@ def apply_manual_blocked_dates(available_dates, manual_ranges):
 
 
 def apply_manual_available_override(available_dates, override_ranges):
-    """Force-add date ranges to available list, overriding scraper blocks."""
     if not override_ranges:
         return available_dates
     override_set = set()
@@ -140,80 +131,96 @@ def apply_manual_available_override(available_dates, override_ranges):
     logger.info("Manual available overrides: +%d dates added to available.", added)
     return sorted(available_set | override_set)
 
-# Speed knobs cargados desde config.py via .env
 
-# ========== Selenium helpers ==========
-def js_click(driver, el):
-    driver.execute_script("arguments[0].click();", el)
+# ========== Playwright helpers ==========
+
+def _js_click(el):
+    el.evaluate("el => el.click()")
+
 
 def _type_slow(el, text):
-    for ch in text:
-        el.send_keys(ch)
-        time.sleep(DATE_KEY_DELAY)
+    el.type(text, delay=int(DATE_KEY_DELAY * 1000))
 
-def _hard_clear(driver, el):
-    driver.execute_script("arguments[0].scrollIntoView({block:'center'});", el)
+
+def _hard_clear(el):
+    el.scroll_into_view_if_needed()
     try:
         el.click()
     except Exception:
         pass
     time.sleep(0.10)
-    for _ in range(2):
-        try:
-            el.send_keys(Keys.CONTROL, "a")
-        except Exception:
-            el.send_keys(Keys.COMMAND, "a")
-        el.send_keys(Keys.DELETE)
-        el.send_keys(Keys.BACK_SPACE)
-        time.sleep(0.05)
-    driver.execute_script("arguments[0].value='';", el)
-    driver.execute_script(
-        "arguments[0].dispatchEvent(new Event('input',{bubbles:true}));"
-        "arguments[0].dispatchEvent(new Event('change',{bubbles:true}));",
-        el
+    el.press("Control+a")
+    el.press("Delete")
+    el.press("Backspace")
+    el.evaluate(
+        "el => {"
+        "  el.value = '';"
+        "  el.dispatchEvent(new Event('input', {bubbles: true}));"
+        "  el.dispatchEvent(new Event('change', {bubbles: true}));"
+        "}"
     )
     time.sleep(0.05)
 
-def set_date_field(driver, field_id, date_str, fast=False):
-    """
-    Si fast=True: pone la fecha directo con JS (más rápido, sin tipear).
-    Si fast=False: usa el método tradicional con tipeo.
-    """
-    el = driver.find_element(By.ID, field_id)
-    driver.execute_script("arguments[0].scrollIntoView({block:'center'});", el)
+
+def get_exchange_frame(page):
+    """Returns the Page or Frame that contains the exchange form, or None."""
+    try:
+        if page.query_selector("#fromDate") and page.query_selector("#searchCriteria"):
+            return page
+    except Exception:
+        pass
+    for frame in page.frames:
+        if frame == page.main_frame:
+            continue
+        try:
+            if frame.query_selector("#fromDate") and frame.query_selector("#searchCriteria"):
+                return frame
+        except Exception:
+            pass
+    return None
+
+
+def set_date_field(frame, field_id, date_str, fast=False):
+    el = frame.query_selector(f"#{field_id}")
+    if el is None:
+        logger.warning("set_date_field: #%s not found", field_id)
+        return
+    el.scroll_into_view_if_needed()
     time.sleep(DATE_INPUT_PAUSE)
 
     current = (el.get_attribute("value") or "").strip()
     if current == date_str:
-        logger.debug("%s: ya tenia %s, se deja igual.", field_id, date_str)
+        logger.debug("%s: already has %s, skipping.", field_id, date_str)
         return
 
     if fast:
-        driver.execute_script(
-            "var el=arguments[0],v=arguments[1];"
-            "el.removeAttribute('readonly');"
-            "el.removeAttribute('disabled');"
-            "el.focus();"
-            "el.value='';"
-            "el.dispatchEvent(new Event('input',{bubbles:true}));"
-            "el.value=v;"
-            "el.dispatchEvent(new Event('input',{bubbles:true}));"
-            "el.dispatchEvent(new Event('change',{bubbles:true}));",
-            el, date_str
+        frame.evaluate(
+            """([fid, v]) => {
+                var el = document.getElementById(fid);
+                el.removeAttribute('readonly');
+                el.removeAttribute('disabled');
+                el.focus();
+                el.value = '';
+                el.dispatchEvent(new Event('input', {bubbles: true}));
+                el.value = v;
+                el.dispatchEvent(new Event('input', {bubbles: true}));
+                el.dispatchEvent(new Event('change', {bubbles: true}));
+            }""",
+            [field_id, date_str],
         )
         time.sleep(0.2)
         try:
-            el.send_keys(Keys.TAB)
+            el.press("Tab")
         except Exception:
             pass
         return
 
     for attempt in range(1, DATE_INPUT_RETRIES + 1):
-        _hard_clear(driver, el)
+        _hard_clear(el)
         _type_slow(el, date_str)
         time.sleep(0.20)
         try:
-            el.send_keys(Keys.TAB)
+            el.press("Tab")
         except Exception:
             pass
         time.sleep(DATE_INPUT_PAUSE)
@@ -222,318 +229,323 @@ def set_date_field(driver, field_id, date_str, fast=False):
             return
         time.sleep(0.3)
 
-    driver.execute_script(
-        "var el=arguments[0],v=arguments[1];"
-        "el.value=v;"
-        "el.dispatchEvent(new Event('input',{bubbles:true}));"
-        "el.dispatchEvent(new Event('change',{bubbles:true}));",
-        el, date_str
+    frame.evaluate(
+        """([fid, v]) => {
+            var el = document.getElementById(fid);
+            el.value = v;
+            el.dispatchEvent(new Event('input', {bubbles: true}));
+            el.dispatchEvent(new Event('change', {bubbles: true}));
+        }""",
+        [field_id, date_str],
     )
     time.sleep(0.2)
     try:
-        el.send_keys(Keys.TAB)
+        el.press("Tab")
     except Exception:
         pass
 
-def create_driver():
-    opts = Options()
-    if HEADLESS:
-        opts.add_argument("--headless=new")
-        opts.add_argument("--window-size=1920,1080")
-    else:
-        opts.add_argument("--start-maximized")
-    # Flags requeridos para correr Chrome en contenedores Docker/Railway
-    opts.add_argument("--no-sandbox")
-    opts.add_argument("--disable-setuid-sandbox")
-    opts.add_argument("--no-zygote")
-    opts.add_argument("--disable-dev-shm-usage")
-    opts.add_argument("--disable-gpu")
-    opts.add_argument("--disable-extensions")
-    opts.add_argument("--disable-background-timer-throttling")
-    opts.add_argument("--disable-renderer-backgrounding")
-    opts.add_argument("--disable-backgrounding-occluded-windows")
-    opts.add_argument("--disable-ipc-flooding-protection")
-    opts.add_argument("--disable-crash-reporter")
-    opts.add_argument("--disable-breakpad")
-    opts.add_argument("--log-level=3")
-    opts.add_argument("--blink-settings=imagesEnabled=false")
-    opts.add_argument("--js-flags=--max-old-space-size=192")
-    opts.add_argument("--disable-software-rasterizer")
-    opts.add_argument("--disable-features=VizDisplayCompositor")
-    opts.add_argument("--single-process")
-    opts.add_experimental_option("excludeSwitches", ["enable-logging"])
-    chromedriver_path = shutil.which("chromedriver") or "/usr/local/bin/chromedriver"
-    service = Service(executable_path=chromedriver_path, log_output=subprocess.DEVNULL)
-    driver = webdriver.Chrome(service=service, options=opts)
-    driver.set_page_load_timeout(60)
-    driver.set_script_timeout(30)
-    return driver
 
-def dismiss_cookie_banner(driver):
+def dismiss_cookie_banner(page):
     try:
-        btn = WebDriverWait(driver, 5).until(
-            EC.element_to_be_clickable((By.ID, "onetrust-accept-btn-handler"))
-        )
-        btn.click()
+        page.wait_for_selector("#onetrust-accept-btn-handler", timeout=5000)
+        page.click("#onetrust-accept-btn-handler")
         time.sleep(0.5)
-    except TimeoutException:
-        driver.execute_script(
-            "document.querySelectorAll('.onetrust-pc-dark-filter, #onetrust-banner-sdk')"
-            ".forEach(e => e.remove());"
-        )
-
-def login_and_go_to_exchange(driver, wait):
-    driver.get("https://www.intervalworld.com/web/my/auth/loginPage")
-    dismiss_cookie_banner(driver)
-    wait.until(EC.presence_of_element_located((By.NAME, "j_username"))).send_keys(USERNAME)
-    driver.find_element(By.NAME, "j_password").send_keys(PASSWORD)
-    wait.until(EC.element_to_be_clickable((By.ID, "buttonlogin"))).click()
-    wait.until(EC.any_of(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "a.text_hide.dc-mega")),
-        EC.presence_of_element_located((By.ID, "searchCriteria"))
-    ))
-    time.sleep(1.0 * SPEED_FACTOR)
-    driver.get("https://www.intervalworld.com/web/cs?a=0")
-    time.sleep(1.0 * SPEED_FACTOR)
-
-def get_exchange_form(driver):
-    driver.switch_to.default_content()
-    forms = driver.find_elements(
-        By.XPATH,
-        "//form[.//input[@id='fromDate'] and .//input[@id='toDate'] and .//input[@id='searchCriteria']]"
-    )
-    if forms:
-        return forms[0]
-    for fr in driver.find_elements(By.TAG_NAME, "iframe"):
+    except PlaywrightTimeoutError:
         try:
-            driver.switch_to.default_content()
-            driver.switch_to.frame(fr)
-            forms = driver.find_elements(
-                By.XPATH,
-                "//form[.//input[@id='fromDate'] and .//input[@id='toDate'] and .//input[@id='searchCriteria']]"
+            page.evaluate(
+                "document.querySelectorAll('.onetrust-pc-dark-filter, #onetrust-banner-sdk')"
+                ".forEach(e => e.remove());"
             )
-            if forms:
-                return forms[0]
         except Exception:
             pass
-    driver.switch_to.default_content()
-    return None
 
-def fast_set_resort_code(driver, resort_code):
-    form = get_exchange_form(driver)
-    if form:
-        radios = form.find_elements(By.XPATH, ".//input[@name='searchType' and @value='ResortSearch']")
-        if radios and not radios[0].is_selected():
-            js_click(driver, radios[0])
-        field = form.find_element(By.ID, "searchCriteria")
-    else:
-        radio = driver.find_element(By.CSS_SELECTOR, "input[name='searchType'][value='ResortSearch']")
-        if not radio.is_selected():
-            js_click(driver, radio)
-        field = driver.find_element(By.ID, "searchCriteria")
 
-    driver.execute_script(
-        "const el=arguments[0],v=arguments[1];"
-        "el.style.opacity=1;el.removeAttribute('disabled');el.removeAttribute('readonly');"
-        "el.focus();el.value='';el.dispatchEvent(new Event('input',{bubbles:true}));"
-        "el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}));"
-        "el.dispatchEvent(new Event('change',{bubbles:true}));if(el.blur)el.blur();",
-        field, resort_code
+def login_and_go_to_exchange(page):
+    page.goto("https://www.intervalworld.com/web/my/auth/loginPage", wait_until="domcontentloaded")
+    dismiss_cookie_banner(page)
+    page.wait_for_selector("[name='j_username']", timeout=25000)
+    page.fill("[name='j_username']", USERNAME)
+    page.fill("[name='j_password']", PASSWORD)
+    page.wait_for_selector("#buttonlogin")
+    page.click("#buttonlogin")
+    page.wait_for_selector(
+        "a.text_hide.dc-mega, #searchCriteria",
+        timeout=int(25 * SPEED_FACTOR * 1000),
     )
+    time.sleep(1.0 * SPEED_FACTOR)
+    page.goto("https://www.intervalworld.com/web/cs?a=0", wait_until="domcontentloaded")
+    time.sleep(1.0 * SPEED_FACTOR)
+
+
+def fast_set_resort_code(frame, resort_code):
+    radio = frame.query_selector("input[name='searchType'][value='ResortSearch']")
+    if radio and not radio.is_checked():
+        _js_click(radio)
+
+    field = frame.query_selector("#searchCriteria")
+    if not field:
+        return
+
+    frame.evaluate(
+        """([el, v]) => {
+            el.style.opacity = 1;
+            el.removeAttribute('disabled');
+            el.removeAttribute('readonly');
+            el.focus();
+            el.value = '';
+            el.dispatchEvent(new Event('input', {bubbles: true}));
+            el.value = v;
+            el.dispatchEvent(new Event('input', {bubbles: true}));
+            el.dispatchEvent(new Event('change', {bubbles: true}));
+            if (el.blur) el.blur();
+        }""",
+        [field, resort_code],
+    )
+
     if (field.get_attribute("value") or "").strip() != resort_code:
         try:
             field.click()
-            try:
-                field.send_keys(Keys.CONTROL, "a")
-            except Exception:
-                field.send_keys(Keys.COMMAND, "a")
-            field.send_keys(Keys.DELETE)
-            field.send_keys(resort_code)
-            field.send_keys(Keys.TAB)
+            field.press("Control+a")
+            field.press("Delete")
+            field.type(resort_code)
+            field.press("Tab")
         except Exception:
             pass
     time.sleep(0.6 * SPEED_FACTOR)
 
-def select_guests_in_exchange_form(driver):
-    """Selecciona al menos 1 adulto en el dropdown de Guests del formulario de busqueda."""
+
+def select_guests_in_exchange_form(frame):
+    """Selecciona al menos 1 adulto en el widget de Guests del formulario."""
     try:
-        form = get_exchange_form(driver)
-        container = form if form else driver
-        selects = container.find_elements(By.XPATH, ".//select[contains(@name,'uest') or contains(@id,'uest') or contains(@name,'dult') or contains(@id,'dult')]")
-        if not selects:
-            selects = container.find_elements(By.TAG_NAME, "select")
-        for sel in selects:
-            options = sel.find_elements(By.TAG_NAME, "option")
-            non_empty = [o for o in options if o.get_attribute("value") and o.get_attribute("value") != "0"]
-            if non_empty:
-                driver.execute_script(
-                    "arguments[0].value=arguments[1];"
-                    "arguments[0].dispatchEvent(new Event('change',{bubbles:true}));",
-                    sel, non_empty[0].get_attribute("value")
-                )
-                logger.info("Guests selected: %s", non_empty[0].text)
-                return
+        # Buscar el select de guests
+        sel = None
+        for q in ["select[id*='uest']", "select[name*='uest']", "select[id*='dult']", "select[name*='dult']"]:
+            sel = frame.query_selector(q)
+            if sel:
+                break
+        if not sel:
+            for s in frame.query_selector_all("select"):
+                opts = s.query_selector_all("option")
+                if any("adult" in (o.text_content() or "").lower() for o in opts):
+                    sel = s
+                    break
+
+        if sel:
+            options = sel.query_selector_all("option")
+            target = next(
+                (o for o in options
+                 if o.get_attribute("value")
+                 and o.get_attribute("value") != "0"
+                 and "0 adult" not in (o.text_content() or "").lower()),
+                None
+            )
+            if target:
+                sel.select_option(value=target.get_attribute("value"))
+                logger.info("Guests set: %s", (target.text_content() or "").strip())
+                time.sleep(0.5 * SPEED_FACTOR)
+
+        # Si aparecio un modal con boton Apply, manejarlo
+        try:
+            apply_btn = frame.wait_for_selector(
+                "button:has-text('Apply')", timeout=2000, state="visible"
+            )
+            # Si el contador de adultos esta en 0, hacer click en el primer boton +
+            plus_btns = frame.query_selector_all("xpath=//button[normalize-space(text())='+']")
+            if plus_btns:
+                # El primer + es el de adultos
+                adults_counter = frame.evaluate("""
+                    () => {
+                        const btns = document.querySelectorAll('button');
+                        for (const b of btns) {
+                            if (b.textContent.trim() === '+') {
+                                const section = b.closest('div');
+                                if (section) {
+                                    const nums = section.querySelectorAll('span, div, p');
+                                    for (const n of nums) {
+                                        const v = parseInt(n.textContent.trim());
+                                        if (!isNaN(v)) return v;
+                                    }
+                                }
+                            }
+                        }
+                        return 1;
+                    }
+                """)
+                if adults_counter == 0:
+                    plus_btns[0].click()
+                    time.sleep(0.3)
+            apply_btn.click()
+            logger.info("Guests modal Applied")
+            time.sleep(0.3 * SPEED_FACTOR)
+        except PlaywrightTimeoutError:
+            pass
+
     except Exception as e:
         logger.warning("Could not select guests: %s", e)
 
 
-def robust_continue_in_exchange_form(driver, wait, max_retries=3):
-    def get_btn(form):
-        btn = form.find_elements(By.XPATH, ".//input[@id='exchange_form_continue_btn']")
+def robust_continue_in_exchange_form(page, max_retries=3):
+    def get_btn(frame):
+        btn = frame.query_selector("#exchange_form_continue_btn")
         if btn:
-            return btn[0]
-        btn = form.find_elements(
-            By.XPATH,
-            ".//input[@type='submit' and translate(@value,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz')='continue']"
+            return btn
+        btn = frame.query_selector(
+            "input[type='submit'][value='Continue'], input[type='submit'][value='continue']"
         )
-        return btn[0] if btn else None
+        return btn
 
     for attempt in range(1, max_retries + 1):
-        form = get_exchange_form(driver)
-        if form is None:
+        frame = get_exchange_frame(page)
+        if frame is None:
             return True
-        prev_url = driver.current_url
-        btn = get_btn(form)
+        prev_url = page.url
+        btn = get_btn(frame)
         if btn is not None:
-            driver.execute_script("arguments[0].scrollIntoView({block:'center'});", btn)
+            btn.scroll_into_view_if_needed()
             try:
                 btn.click()
             except Exception:
-                try:
-                    ActionChains(driver).move_to_element(btn).pause(0.05 * SPEED_FACTOR).click(btn).perform()
-                except Exception:
-                    js_click(driver, btn)
+                _js_click(btn)
             time.sleep(0.7 * SPEED_FACTOR)
-        if driver.current_url == prev_url:
+        if page.url == prev_url:
             try:
-                driver.execute_script("arguments[0].submit();", form)
+                frame.evaluate("document.querySelector('form').submit()")
             except Exception:
                 pass
-        try:
-            WebDriverWait(driver, int(8 * SPEED_FACTOR) + attempt * 2).until(
-                lambda d: d.current_url != prev_url or get_exchange_form(driver) is None
-            )
-            time.sleep(0.6 * SPEED_FACTOR)
-            return True
-        except TimeoutException:
-            time.sleep(0.5 * SPEED_FACTOR)
+        wait_until = time.time() + int(8 * SPEED_FACTOR) + attempt * 2
+        while time.time() < wait_until:
+            if page.url != prev_url or get_exchange_frame(page) is None:
+                time.sleep(0.6 * SPEED_FACTOR)
+                return True
+            time.sleep(0.3)
+        time.sleep(0.5 * SPEED_FACTOR)
     return False
 
-def click_any_unredeemed_vacation_exchange(driver, timeout=VACATION_EXCHANGE_TIMEOUT):
+
+def click_any_unredeemed_vacation_exchange(page_ref, timeout=VACATION_EXCHANGE_TIMEOUT):
+    page = page_ref[0]
+    context = page.context
     end = time.time() + timeout * SPEED_FACTOR
-    xp_rows = ("//tr[contains(@class,'unit_info')][.//a[contains(@class,'pop_up') "
-               "and contains(translate(normalize-space(.),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'unredeemed deposit')]]")
-    before_url = driver.current_url
-    before_handles = set(driver.window_handles)
+    before_url = page.url
+    before_page_ids = {id(p) for p in context.pages}
+
+    xp = (
+        "xpath=//tr[contains(@class,'unit_info')]"
+        "[.//a[contains(@class,'pop_up') and contains("
+        "translate(normalize-space(.),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz')"
+        ",'unredeemed deposit')]]"
+    )
+
     while time.time() < end:
-        rows = driver.find_elements(By.XPATH, xp_rows)
+        rows = page.query_selector_all(xp)
         if not rows:
-            driver.execute_script("window.scrollBy(0, 600);")
+            page.evaluate("window.scrollBy(0, 600)")
             time.sleep(0.3 * SPEED_FACTOR)
             continue
         for row in rows:
             btn = None
-            for xp in [
-                ".//input[@type='image' and contains(@src,'vexchange')]",
-                ".//a[contains(translate(normalize-space(.),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'vacation exchange')]",
-                ".//button[contains(translate(normalize-space(.),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'vacation exchange')]"
+            for sel in [
+                "xpath=.//input[@type='image' and contains(@src,'vexchange')]",
+                "xpath=.//a[contains(translate(normalize-space(.),"
+                "'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'vacation exchange')]",
+                "xpath=.//button[contains(translate(normalize-space(.),"
+                "'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'vacation exchange')]",
             ]:
-                els = row.find_elements(By.XPATH, xp)
+                els = row.query_selector_all(sel)
                 if els:
                     btn = els[0]
                     break
             if not btn:
                 continue
-            driver.execute_script("arguments[0].scrollIntoView({block:'center'});", btn)
+            btn.scroll_into_view_if_needed()
             try:
                 btn.click()
             except Exception:
-                js_click(driver, btn)
+                _js_click(btn)
             time.sleep(VACATION_EXCHANGE_PAUSE * SPEED_FACTOR)
-            new_handles = set(driver.window_handles) - before_handles
-            if new_handles:
-                driver.switch_to.window(list(new_handles)[0])
+            new_pages = [p for p in context.pages if id(p) not in before_page_ids]
+            if new_pages:
+                new_page = new_pages[0]
+                try:
+                    new_page.wait_for_load_state("domcontentloaded", timeout=15000)
+                except Exception:
+                    pass
+                page_ref[0] = new_page
                 return True
-            if driver.current_url != before_url:
+            if page.url != before_url:
                 return True
-        driver.execute_script("window.scrollBy(0, 800);")
+        page.evaluate("window.scrollBy(0, 800)")
         time.sleep(0.4 * SPEED_FACTOR)
     return False
 
-def locate_all_resort_blocks(driver):
-    driver.switch_to.default_content()
-    blocks = driver.find_elements(By.CLASS_NAME, "table_frame")
-    if blocks:
-        return blocks
-    for fr in driver.find_elements(By.TAG_NAME, "iframe"):
+
+def locate_all_resort_blocks(page):
+    all_blocks = []
+    for frame in page.frames:
         try:
-            driver.switch_to.default_content()
-            driver.switch_to.frame(fr)
-            blocks = driver.find_elements(By.CLASS_NAME, "table_frame")
-            if blocks:
-                return blocks
+            blocks = frame.query_selector_all(".table_frame")
+            all_blocks.extend(blocks)
         except Exception:
             pass
-    driver.switch_to.default_content()
-    return []
+    return all_blocks
 
-def find_resort_block_by_code(driver, resort_code):
-    blocks = locate_all_resort_blocks(driver)
+
+def find_resort_block_by_code(page, resort_code):
+    blocks = locate_all_resort_blocks(page)
     target = resort_code.strip().upper()
     for block in blocks:
         try:
-            for s in block.find_elements(By.XPATH, ".//strong"):
-                if (s.text or "").strip().upper() == target:
+            for s in block.query_selector_all("xpath=.//strong"):
+                if (s.text_content() or "").strip().upper() == target:
                     return block
         except Exception:
             continue
     return None
 
-def click_more_dates_until_exhausted(driver, resort_code, pause=MORE_DATES_PAUSE, max_clicks=MAX_MORE_DATES_CLICKS):
+
+def click_more_dates_until_exhausted(page, resort_code, pause=MORE_DATES_PAUSE, max_clicks=MAX_MORE_DATES_CLICKS):
     clicks = 0
     while clicks < max_clicks:
-        block = find_resort_block_by_code(driver, resort_code)
+        block = find_resort_block_by_code(page, resort_code)
         if not block:
             break
-
         more = None
-        for xp in [
-            ".//a[contains(translate(normalize-space(.),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'more dates')]",
-            ".//button[contains(translate(normalize-space(.),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'more dates')]",
-            ".//a[contains(translate(normalize-space(.),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'see more dates')]",
-            ".//button[contains(translate(normalize-space(.),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'see more dates')]",
-            ".//*[contains(@class,'see_more_btn')]//a",
-            ".//*[contains(@class,'see_more_btn')]//button",
-            ".//*[contains(@class,'see_more_btn')]//input"
+        for sel in [
+            "xpath=.//a[contains(translate(normalize-space(.),"
+            "'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'more dates')]",
+            "xpath=.//button[contains(translate(normalize-space(.),"
+            "'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'more dates')]",
+            "xpath=.//a[contains(translate(normalize-space(.),"
+            "'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'see more dates')]",
+            "xpath=.//button[contains(translate(normalize-space(.),"
+            "'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'see more dates')]",
+            "xpath=.//*[contains(@class,'see_more_btn')]//a",
+            "xpath=.//*[contains(@class,'see_more_btn')]//button",
+            "xpath=.//*[contains(@class,'see_more_btn')]//input",
         ]:
-            els = block.find_elements(By.XPATH, xp)
+            els = block.query_selector_all(sel)
             if els:
                 more = els[0]
                 break
-
         if more is None:
             return clicks
-
-        driver.execute_script("arguments[0].scrollIntoView({block:'center'});", more)
+        more.scroll_into_view_if_needed()
         try:
             more.click()
         except Exception:
-            try:
-                ActionChains(driver).move_to_element(more).pause(0.05).click(more).perform()
-            except Exception:
-                js_click(driver, more)
-
+            _js_click(more)
         time.sleep(pause)
         clicks += 1
-
     return clicks
 
+
 # ------- Parser -------
+
 def _collect_from_strong_rows(block, required_bedrooms):
     dates = set()
-    strongs = block.find_elements(By.XPATH, ".//strong[contains(., ' - ')]")
+    strongs = block.query_selector_all("xpath=.//strong[contains(., ' - ')]")
     for st in strongs:
-        txt = (st.text or "").strip()
+        txt = (st.text_content() or "").strip()
         if not txt or " - " not in txt:
             continue
         txt = " ".join(txt.split())
@@ -545,21 +557,23 @@ def _collect_from_strong_rows(block, required_bedrooms):
             continue
         bd = None
         try:
-            tr = st.find_element(By.XPATH, "ancestor::tr[1]")
-            spans = tr.find_elements(By.XPATH, ".//span[@id='bedrooms']")
-            for sp in spans:
-                val = (sp.text or "").strip()
-                if val.isdigit():
-                    bd = val
-                    break
-            if bd is None:
-                next_tr = tr.find_element(By.XPATH, "following-sibling::tr[1]")
-                spans2 = next_tr.find_elements(By.XPATH, ".//span[@id='bedrooms']")
-                for sp in spans2:
-                    val = (sp.text or "").strip()
+            tr_js = st.evaluate_handle("el => el.closest('tr')")
+            tr = tr_js.as_element()
+            if tr:
+                for sp in tr.query_selector_all("span#bedrooms"):
+                    val = (sp.text_content() or "").strip()
                     if val.isdigit():
                         bd = val
                         break
+                if bd is None:
+                    next_tr_js = tr.evaluate_handle("el => el.nextElementSibling")
+                    next_tr = next_tr_js.as_element()
+                    if next_tr:
+                        for sp in next_tr.query_selector_all("span#bedrooms"):
+                            val = (sp.text_content() or "").strip()
+                            if val.isdigit():
+                                bd = val
+                                break
         except Exception:
             pass
         if required_bedrooms and (bd is None or str(bd) != required_bedrooms):
@@ -570,22 +584,24 @@ def _collect_from_strong_rows(block, required_bedrooms):
                 dates.add(d.strftime("%Y-%m-%d"))
     return dates
 
+
 def _collect_from_avail_divs(block, required_bedrooms):
     dates = set()
-    rows = block.find_elements(By.XPATH, ".//div[@class='avail_dates']")
+    rows = block.query_selector_all("div.avail_dates")
     for row in rows:
-        date_range = (row.text or "").strip()
+        date_range = (row.text_content() or "").strip()
         if " - " not in date_range:
             continue
+        bd = None
         try:
-            next_div = row.find_element(By.XPATH, "following-sibling::div[1]")
+            next_div_js = row.evaluate_handle("el => el.nextElementSibling")
+            next_div = next_div_js.as_element()
+            if next_div:
+                bedroom_span = next_div.query_selector("span#bedrooms")
+                if bedroom_span:
+                    bd = (bedroom_span.text_content() or "").strip()
         except Exception:
-            continue
-        try:
-            bedroom_span = next_div.find_element(By.XPATH, ".//span[@id='bedrooms']")
-            bd = (bedroom_span.text or "").strip()
-        except Exception:
-            bd = None
+            pass
         if required_bedrooms and (bd is None or bd != required_bedrooms):
             continue
         try:
@@ -600,6 +616,7 @@ def _collect_from_avail_divs(block, required_bedrooms):
                 dates.add(d.strftime("%Y-%m-%d"))
     return dates
 
+
 def parse_availability_from_block(block, listing_id, bedroom_filter):
     required = str(bedroom_filter.get(listing_id, "")).strip() if listing_id in bedroom_filter else None
     dates = set()
@@ -607,74 +624,74 @@ def parse_availability_from_block(block, listing_id, bedroom_filter):
     dates |= _collect_from_avail_divs(block, required)
     return sorted(dates)
 
-def wait_results_or_timeout(driver):
+
+def wait_results_or_timeout(page):
     try:
-        WebDriverWait(driver, int(20 * SPEED_FACTOR)).until(EC.any_of(
-            EC.presence_of_element_located((By.CLASS_NAME, "table_frame")),
-            EC.presence_of_element_located((By.XPATH,
-                "//*[contains(translate(normalize-space(.),"
-                "'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'no availability')]"
-            ))
-        ))
+        page.wait_for_function(
+            "() => !!(document.querySelector('.table_frame') || "
+            "document.body.innerHTML.toLowerCase().includes('no availability'))",
+            timeout=int(20 * SPEED_FACTOR * 1000),
+        )
         time.sleep(0.8 * SPEED_FACTOR)
         return True
-    except TimeoutException:
+    except PlaywrightTimeoutError:
         logger.info("No results appeared - treating as NO AVAILABILITY for this period.")
         return False
 
-# ---------- Recolección ----------
+
+# ---------- Recoleccion ----------
+
 def collect_available_dates(resort_code, listing_id, bedroom_filter):
-    driver = create_driver()
-    wait = WebDriverWait(driver, int(25 * SPEED_FACTOR))
+    pw = sync_playwright().start()
     try:
-        login_and_go_to_exchange(driver, wait)
-        fast_set_resort_code(driver, resort_code)
+        browser = pw.chromium.launch(headless=HEADLESS, args=_BROWSER_ARGS)
+        context = browser.new_context(viewport={"width": 1920, "height": 1080})
+        page = context.new_page()
+        page.set_default_timeout(60000)
+        page.set_default_navigation_timeout(60000)
+        page_ref = [page]
+        try:
+            login_and_go_to_exchange(page_ref[0])
+            frame = get_exchange_frame(page_ref[0]) or page_ref[0]
+            fast_set_resort_code(frame, resort_code)
+            set_date_field(frame, "fromDate", DATE_RANGE_START.strftime("%m/%d/%Y"), fast=True)
+            set_date_field(frame, "toDate", DATE_RANGE_END.strftime("%m/%d/%Y"), fast=False)
+            select_guests_in_exchange_form(frame)
 
-        # fromDate rápido (JS), toDate estándar
-        set_date_field(driver, "fromDate", DATE_RANGE_START.strftime("%m/%d/%Y"), fast=True)
-        set_date_field(driver, "toDate", DATE_RANGE_END.strftime("%m/%d/%Y"), fast=False)
-        select_guests_in_exchange_form(driver)
-
-        if not robust_continue_in_exchange_form(driver, wait, max_retries=3):
-            logger.error("Could not click Continue")
-            return []
-        if not wait_results_or_timeout(driver):
-            return []
-        if not click_any_unredeemed_vacation_exchange(driver, timeout=VACATION_EXCHANGE_TIMEOUT):
-            logger.error("Could not click Vacation Exchange (Unredeemed Deposit).")
-            return []
-        if not wait_results_or_timeout(driver):
-            return []
-        _ = click_more_dates_until_exhausted(driver, resort_code, pause=MORE_DATES_PAUSE)
-        block = find_resort_block_by_code(driver, resort_code)
-        if not block:
-            logger.error("Resort block not found: %s", resort_code)
-            return []
-        logger.info("Resort block %s found. Parsing...", resort_code)
-        available_dates = parse_availability_from_block(block, listing_id, bedroom_filter)
-        return list(sorted(set(available_dates)))
-    finally:
-        def _quit_driver():
+            if not robust_continue_in_exchange_form(page_ref[0]):
+                logger.error("Could not click Continue")
+                return []
+            if not wait_results_or_timeout(page_ref[0]):
+                return []
+            if not click_any_unredeemed_vacation_exchange(page_ref, timeout=VACATION_EXCHANGE_TIMEOUT):
+                logger.error("Could not click Vacation Exchange (Unredeemed Deposit).")
+                return []
+            if not wait_results_or_timeout(page_ref[0]):
+                return []
+            _ = click_more_dates_until_exhausted(page_ref[0], resort_code, pause=MORE_DATES_PAUSE)
+            block = find_resort_block_by_code(page_ref[0], resort_code)
+            if not block:
+                logger.error("Resort block not found: %s", resort_code)
+                return []
+            logger.info("Resort block %s found. Parsing...", resort_code)
+            available_dates = parse_availability_from_block(block, listing_id, bedroom_filter)
+            return list(sorted(set(available_dates)))
+        finally:
             try:
-                driver.quit()
+                browser.close()
             except Exception as e:
-                logger.warning("Error closing driver: %s", e)
-        t = threading.Thread(target=_quit_driver, daemon=True)
-        t.start()
-        t.join(timeout=10)
-        if t.is_alive():
-            logger.warning("driver.quit() did not respond in 10s, force-killing Chrome")
-            try:
-                if hasattr(driver, 'service') and hasattr(driver.service, 'process') and driver.service.process:
-                    driver.service.process.kill()
-            except Exception:
-                pass
+                logger.warning("Error closing browser: %s", e)
+    finally:
+        try:
+            pw.stop()
+        except Exception:
+            pass
+
 
 # ================== MAIN ==================
 def main():
     logger.info("Starting Interval World -> iCal scraper...")
 
-    # 1) LISTA PRINCIPAL (ordenado: 0 dormitorios, luego 2, luego resto)
     ordered_primary = sort_primary_listings_by_bedrooms(PRIMARY_LISTINGS)
     for prop in ordered_primary:
         logger.info("Scraping %s (Listing ID: %s)...", prop["resort_code"], prop["listing_id"])
@@ -684,9 +701,8 @@ def main():
             logger.info("%d available dates found.", len(available))
             generate_ics_for_listing(prop["listing_id"], available, DATE_RANGE_START, DATE_RANGE_END)
         except Exception as e:
-            logger.exception("Error processing %s - %s: %s", prop['listing_id'], prop['resort_code'], e)
+            logger.exception("Error processing %s - %s: %s", prop["listing_id"], prop["resort_code"], e)
 
-    # 2) LISTA SECUNDARIA (solo disponibilidad adicional)
     for prop in AVAILABILITY_ONLY_LISTINGS:
         logger.info("Extra availability %s (Listing ID: %s)...", prop["resort_code"], prop["listing_id"])
         try:
@@ -698,7 +714,8 @@ def main():
             else:
                 logger.info("No availability.")
         except Exception as e:
-            logger.exception("Error en %s (%s): %s", prop['listing_id'], prop['resort_code'], e)
+            logger.exception("Error en %s (%s): %s", prop["listing_id"], prop["resort_code"], e)
+
 
 if __name__ == "__main__":
     main()
