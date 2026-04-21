@@ -317,7 +317,7 @@ def _apply_guests_modal(context):
     context puede ser Page o Frame. Retorna True si manejó el modal."""
     try:
         apply_btn = context.wait_for_selector(
-            "button:has-text('Apply')", timeout=2000, state="visible"
+            "button:has-text('Apply')", timeout=4000, state="visible"
         )
         # El contador de adultos está entre los botones [-] y [+]
         plus_btns = context.query_selector_all("xpath=//button[normalize-space(text())='+']")
@@ -361,12 +361,20 @@ def select_guests_in_exchange_form(frame):
             guest_el.scroll_into_view_if_needed()
             guest_el.click()
             logger.info("Guests: clicked dropdown to open modal")
-            time.sleep(0.6 * SPEED_FACTOR)
+            time.sleep(1.0 * SPEED_FACTOR)
         else:
             logger.warning("Guests: no dropdown element found")
 
         if not _apply_guests_modal(frame):
-            logger.warning("Guests: modal did not appear after click")
+            # Retry: segundo click en caso de que el primero no haya abierto el modal
+            if guest_el:
+                try:
+                    guest_el.click()
+                    time.sleep(1.0 * SPEED_FACTOR)
+                except Exception:
+                    pass
+            if not _apply_guests_modal(frame):
+                logger.warning("Guests: modal did not appear after 2 attempts")
 
     except Exception as e:
         logger.warning("Could not select guests: %s", e)
@@ -382,6 +390,7 @@ def robust_continue_in_exchange_form(page, max_retries=4):
         )
 
     for attempt in range(1, max_retries + 1):
+        _apply_guests_modal(page)
         frame = get_exchange_frame(page)
         if frame is None:
             return True
