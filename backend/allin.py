@@ -409,9 +409,17 @@ def robust_continue_in_exchange_form(page, max_retries=4):
         btn = frame.query_selector("#exchange_form_continue_btn")
         if btn:
             return btn
-        return frame.query_selector(
-            "input[type='submit'][value='Continue'], input[type='submit'][value='continue']"
-        )
+        # input submit variants
+        for val in ["Continue", "continue", "Search", "search", "Continuar", "Buscar"]:
+            b = frame.query_selector(f"input[type='submit'][value='{val}']")
+            if b:
+                return b
+        # button element variants
+        for txt in ["Continue", "Search", "Continuar", "Buscar"]:
+            b = frame.query_selector(f"button:has-text('{txt}')")
+            if b:
+                return b
+        return None
 
     for attempt in range(1, max_retries + 1):
         _apply_guests_modal(page, timeout=800)
@@ -421,12 +429,16 @@ def robust_continue_in_exchange_form(page, max_retries=4):
         prev_url = page.url
         btn = get_btn(frame)
         if btn is not None:
+            lbl = btn.get_attribute("value") or btn.text_content() or "?"
+            logger.info("Continue btn found: '%s' (attempt %d)", lbl.strip(), attempt)
             btn.scroll_into_view_if_needed()
             try:
                 btn.click()
             except Exception:
                 _js_click(btn)
             time.sleep(0.7 * SPEED_FACTOR)
+        else:
+            logger.warning("Continue btn NOT found (attempt %d), using form.submit()", attempt)
 
         # Si el click abrio el modal de guests, manejarlo y reintentar
         if _apply_guests_modal(page, timeout=800):
@@ -440,7 +452,7 @@ def robust_continue_in_exchange_form(page, max_retries=4):
                 pass
         wait_until = time.time() + int(8 * SPEED_FACTOR) + attempt * 2
         while time.time() < wait_until:
-            if page.url != prev_url or get_exchange_frame(page) is None:
+            if page.url != prev_url and get_exchange_frame(page) is None:
                 time.sleep(0.6 * SPEED_FACTOR)
                 return True
             time.sleep(0.3)
