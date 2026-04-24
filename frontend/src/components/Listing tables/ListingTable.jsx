@@ -724,7 +724,7 @@ export const ListingTable = ({
           emptyMessage={t.listingTable.loadError}
           showTitle={false}
           labelWidth={140}
-          rowsPerPageOptions={[13, 26, 100]}
+          rowsPerPageOptions={[8, 16, 100]}
           subHeader={
             <MobileFilterPanel
               isOpen={filtersOpen}
