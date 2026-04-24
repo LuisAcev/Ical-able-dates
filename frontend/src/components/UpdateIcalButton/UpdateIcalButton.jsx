@@ -9,10 +9,14 @@ import { primaryIconButton } from "../../styles/styles";
 import { t } from "../../i18n";
 
 export const UpdateIcalButton = ({ isUpdating, handleUpdateAll, handleCancelUpdate, status }) => {
-  const counter = isUpdating
+  const counterFull = isUpdating
     ? status?.total
       ? t.updateAll.updating(status.progress, status.total)
       : t.updateAll.starting
+    : null;
+
+  const counterShort = isUpdating && status?.total
+    ? `${status.progress}/${status.total}`
     : null;
 
   return (
@@ -31,8 +35,12 @@ export const UpdateIcalButton = ({ isUpdating, handleUpdateAll, handleCancelUpda
           }}
         >
           <ListingCircularProgress size={18} color="inherit" sx={{ color: "#fff" }} />
-          <Box sx={{ color: "#fff", fontSize: 14, fontFamily: "inherit", whiteSpace: "nowrap" }}>
-            {counter}
+          {/* Texto completo en desktop, corto en mobile */}
+          <Box sx={{ color: "#fff", fontSize: 14, fontFamily: "inherit", whiteSpace: "nowrap", display: { xs: "none", md: "block" } }}>
+            {counterFull}
+          </Box>
+          <Box sx={{ color: "#fff", fontSize: 14, fontFamily: "inherit", whiteSpace: "nowrap", display: { xs: "block", md: "none" } }}>
+            {counterShort ?? t.updateAll.starting}
           </Box>
           <Tooltip title={t.updateAll.cancelButton} arrow>
             <IconButton

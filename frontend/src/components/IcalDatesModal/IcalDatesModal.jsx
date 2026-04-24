@@ -318,7 +318,7 @@ export const IcalDatesModal = ({ open, onClose, listingId, alertRef, onUpdateSta
                 <Typography variant="caption" sx={{ color: "#BDBDBD" }}>{t.icalDates.legendAvailable}</Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                <Box sx={{ width: 14, height: 14, borderRadius: "50%", backgroundColor: "rgba(66, 165, 245, 0.6)" }} />
+                <Box sx={{ width: 14, height: 14, borderRadius: "50%", backgroundColor: "rgba(147, 9, 201, 0.82)" }} />
                 <Typography variant="caption" sx={{ color: "#BDBDBD" }}>{t.icalDates.legendManual}</Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
