@@ -1,6 +1,8 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import { ListingCircularProgress } from "../ListingCircularProgress/ListingCircularProgress";
 import Chip from "@mui/material/Chip";
 import { AlertInline } from "../AlertInline/AlertInline";
@@ -27,43 +29,20 @@ import {
   dataGridTable,
   actionIconButton,
   resortCodes,
+  dialogPaperSx,
+  greenButtonSx,
+  cancelButtonSx,
+  dialogTextFieldSx,
 } from "../../styles/styles";
 import {
   useUpdateListingDataMutation,
   useDeleteListingMutation,
 } from "../../store/api/api";
 import { t, dateLocale } from "../../i18n";
-
-const RESORT_CODE_RE = /^[A-Z0-9]{2,10}$/i;
-const validateResortCodes = (value) =>
-  value.trim() === "" ||
-  value.split(",").map((c) => c.trim()).filter(Boolean).every((c) => RESORT_CODE_RE.test(c));
-
-const extractErrorMessage = (err, fallback) => {
-  const detail = err?.data?.detail;
-  if (!detail) return fallback;
-  if (typeof detail === "string") return detail;
-  if (Array.isArray(detail))
-    return detail
-      .map((d) => d.msg || d.message || JSON.stringify(d))
-      .join(", ");
-  return fallback;
-};
-
-const dialogPaperSx = {
-  backgroundColor: "#424242",
-  color: "#E0E0E0",
-  borderRadius: "1.5rem",
-};
-
-const greenButtonSx = {
-  borderRadius: "1rem",
-  textTransform: "none",
-  backgroundColor: "#16A34A",
-  "&:hover": { backgroundColor: "#15803d" },
-};
-
-const cancelButtonSx = { color: "#BDBDBD", borderRadius: "1rem" };
+import { ColumnHeaderFilter } from "../ColumnHeaderFilter/ColumnHeaderFilter";
+import { UniversalMobilDataTable } from "../UniversalMobilDataTable/UniversalMobilDataTable";
+import { MobileFilterPanel } from "../MobileFilterPanel/MobileFilterPanel";
+import { validateResortCodes, extractErrorMessage } from "../../utils/listingUtils";
 
 const deleteButtonSx = {
   borderRadius: "1rem",
@@ -72,18 +51,7 @@ const deleteButtonSx = {
   "&:hover": { backgroundColor: "#c62828" },
 };
 
-const textFieldSx = {
-  mt: 1.5,
-  "& .MuiOutlinedInput-root": {
-    borderRadius: "1rem",
-    color: "#E0E0E0",
-    "& fieldset": { borderColor: "#626262" },
-    "&:hover fieldset": { borderColor: "#16A34A" },
-    "&.Mui-focused fieldset": { borderColor: "#16A34A" },
-  },
-  "& .MuiInputLabel-root": { color: "#BDBDBD" },
-  "& .MuiInputLabel-root.Mui-focused": { color: "#16A34A" },
-};
+const textFieldSx = { mt: 1.5, ...dialogTextFieldSx };
 
 const formatDate = (iso) => {
   if (!iso) return t.listingTable.never;
@@ -103,6 +71,14 @@ const bedroomLabel = (val) => {
   return t.listingTable.bedroomCount(n);
 };
 
+const EMPTY_FILTERS = {
+  listing_id: "",
+  title: "",
+  resort_codes: "",
+  bedrooms: "",
+  state: "",
+};
+
 export const ListingTable = ({
   listings,
   loading,
@@ -111,7 +87,29 @@ export const ListingTable = ({
   handleUpdateOne,
   handleToggleIcal,
   alertRef,
+  filtersOpen = false,
 }) => {
+  const isMobile = useMediaQuery("(max-width:768px)");
+
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+
+  const handleFilterChange = (key, value) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleClearFilters = () => setFilters(EMPTY_FILTERS);
+
+  const filteredListings = useMemo(() => {
+    if (!Array.isArray(listings)) return [];
+    return listings.filter((row) => {
+      if (filters.listing_id && !String(row.listing_id).toLowerCase().includes(filters.listing_id.toLowerCase())) return false;
+      if (filters.title && !(row.title || "").toLowerCase().includes(filters.title.toLowerCase())) return false;
+      if (filters.resort_codes && !(row.resort_codes || []).join(" ").toLowerCase().includes(filters.resort_codes.toLowerCase())) return false;
+      if (filters.bedrooms && String(row.bedrooms) !== filters.bedrooms) return false;
+      if (filters.state && !(row.state || "").toLowerCase().includes(filters.state.toLowerCase())) return false;
+      return true;
+    });
+  }, [listings, filters]);
   const [confirmDialog, setConfirmDialog] = useState({
     open: false,
     listingId: null,
@@ -274,6 +272,28 @@ export const ListingTable = ({
     }
   };
 
+  const bedroomOptions = [
+    { value: "0", label: t.listingTable.studio },
+    { value: "1", label: "1 hab" },
+    { value: "2", label: "2 hab" },
+    { value: "3", label: "3 hab" },
+  ];
+
+  const mkHeader = (headerName, filterType, filterKey, extra = {}) => ({
+    renderHeader: () => (
+      <ColumnHeaderFilter
+        headerName={headerName}
+        filterType={filterType}
+        filterKey={filterKey}
+        filterValue={filters[filterKey]}
+        onFilterChange={handleFilterChange}
+        isOpen={filtersOpen}
+        onClearFilters={handleClearFilters}
+        {...extra}
+      />
+    ),
+  });
+
   const columns = [
     {
       field: "listing_id",
@@ -281,6 +301,7 @@ export const ListingTable = ({
       flex: 1,
       align: "center",
       headerAlign: "center",
+      ...mkHeader(t.listingTable.listingId, "text", "listing_id"),
     },
     {
       field: "title",
@@ -293,6 +314,7 @@ export const ListingTable = ({
         params.value || (
           <em style={{ color: "#999" }}>{t.listingTable.noTitle}</em>
         ),
+      ...mkHeader(t.listingTable.resortName, "text", "title"),
     },
     {
       field: "resort_codes",
@@ -302,14 +324,9 @@ export const ListingTable = ({
       headerAlign: "center",
       renderCell: (params) =>
         (params.value || []).map((code) => (
-          <Chip
-            key={code}
-            label={code}
-            size="small"
-            variant="outlined"
-            sx={resortCodes}
-          />
+          <Chip key={code} label={code} size="small" variant="outlined" sx={resortCodes} />
         )),
+      ...mkHeader(t.listingTable.resortCodes, "text", "resort_codes"),
     },
     {
       field: "bedrooms",
@@ -318,6 +335,7 @@ export const ListingTable = ({
       align: "center",
       headerAlign: "center",
       renderCell: (params) => bedroomLabel(params.value),
+      ...mkHeader(t.listingTable.bedrooms, "select", "bedrooms", { options: bedroomOptions, labelKey: "label", valueKey: "value" }),
     },
     {
       field: "state",
@@ -327,6 +345,7 @@ export const ListingTable = ({
       headerAlign: "center",
       renderCell: (params) =>
         params.value || <em style={{ color: "#999" }}>—</em>,
+      ...mkHeader(t.listingTable.state, "text", "state"),
     },
     {
       field: "last_updated",
@@ -349,6 +368,13 @@ export const ListingTable = ({
           </Box>
         );
       },
+      renderHeader: () => (
+        <ColumnHeaderFilter
+          headerName={t.listingTable.lastUpdated}
+          filterType="none"
+          isOpen={filtersOpen}
+        />
+      ),
     },
     {
       field: "ical_url",
@@ -358,6 +384,9 @@ export const ListingTable = ({
       headerAlign: "center",
       sortable: false,
       filterable: false,
+      renderHeader: () => (
+        <ColumnHeaderFilter headerName={t.listingTable.icalUrlHeader} filterType="none" isOpen={filtersOpen} />
+      ),
       renderCell: (params) => {
         const url = params.value;
         const lid = params.row.listing_id;
@@ -427,6 +456,9 @@ export const ListingTable = ({
       headerAlign: "center",
       sortable: false,
       filterable: false,
+      renderHeader: () => (
+        <ColumnHeaderFilter headerName={t.icalDates.columnHeader} filterType="none" isOpen={filtersOpen} />
+      ),
       renderCell: (params) => (
         <Tooltip title={t.icalDates.openTooltip} arrow>
           <IconButton
@@ -450,6 +482,14 @@ export const ListingTable = ({
       headerAlign: "center",
       sortable: false,
       filterable: false,
+      renderHeader: () => (
+        <ColumnHeaderFilter
+          headerName={t.listingTable.actions}
+          filterType="actions"
+          isOpen={filtersOpen}
+          onClearFilters={handleClearFilters}
+        />
+      ),
       renderCell: (params) => {
         const lid = params.row.listing_id;
         const busy = updatingIds.has(lid);
@@ -533,6 +573,123 @@ export const ListingTable = ({
     },
   ];
 
+  // ─── Mobile config ──────────────────────────────────────────────────────────
+
+  const mobileColumns = [
+    { field: "listing_id", headerName: t.listingTable.listingId },
+    {
+      field: "resort_codes",
+      headerName: t.listingTable.resortCodes,
+      renderCell: ({ row }) =>
+        (row.resort_codes || []).map((code) => (
+          <Chip key={code} label={code} size="small" variant="outlined" sx={{ ...resortCodes, mr: 0.5 }} />
+        )),
+    },
+    {
+      field: "bedrooms",
+      headerName: t.listingTable.bedrooms,
+      renderCell: ({ row }) => (
+        <Typography variant="body2" sx={{ color: "#E0E0E0" }}>
+          {bedroomLabel(row.bedrooms)}
+        </Typography>
+      ),
+    },
+    { field: "state", headerName: t.listingTable.state },
+    {
+      field: "last_updated",
+      headerName: t.listingTable.lastUpdated,
+      renderCell: ({ row }) => (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          {row.last_error && (
+            <Tooltip title={typeof row.last_error === "string" ? row.last_error : t.listingTable.lastErrorTooltip} arrow>
+              <WarningAmberIcon sx={{ color: "#ffa726", fontSize: 16 }} />
+            </Tooltip>
+          )}
+          <Typography variant="body2" sx={{ color: "#E0E0E0" }}>
+            {formatDate(row.last_updated)}
+          </Typography>
+        </Box>
+      ),
+    },
+    {
+      field: "ical_url",
+      headerName: t.listingTable.icalUrlHeader,
+      renderCell: ({ row }) => {
+        const url = row.ical_url;
+        if (!url) return <Box sx={{ color: "#777", fontSize: 12 }}>{t.listingTable.noUrlConfigured}</Box>;
+        const isCopied = copiedId === row.listing_id;
+        return (
+          <Box sx={{ display: "flex", gap: 0.5 }}>
+            <Tooltip title={isCopied ? t.listingTable.copied : t.listingTable.copyTooltip} arrow>
+              <IconButton size="small" onClick={() => handleCopyUrl(url, row.listing_id)}
+                sx={{ color: isCopied ? "#66bb6a" : "#90caf9" }}>
+                {isCopied ? <CheckIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={t.listingTable.viewUrlTooltip} arrow>
+              <IconButton size="small" onClick={() => handleOpenUrlDialog(url)}
+                sx={{ color: "#ce93d8" }}>
+                <VisibilityIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        );
+      },
+    },
+  ];
+
+  const mobileRenderActions = (row) => {
+    const lid = row.listing_id;
+    const busy = updatingIds.has(lid);
+    const icalEnabled = row.ical_enabled !== false;
+    return (
+      <>
+        <Tooltip title={t.listingTable.updateTooltip} arrow>
+          <span>
+            <IconButton disabled={busy || !icalEnabled} onClick={() => handleUpdateOne(lid)} sx={actionIconButton} size="small">
+              {busy ? <ListingCircularProgress size={18} /> : <RotateLeftIcon fontSize="small" />}
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title={icalEnabled ? t.icalToggle.lockTooltip : t.icalToggle.unlockTooltip} arrow>
+          <IconButton onClick={() => handleOpenConfirm(lid, icalEnabled)} size="small"
+            sx={{ color: icalEnabled ? "#ef5350" : "#66bb6a", backgroundColor: icalEnabled ? "rgba(239,83,80,0.15)" : "rgba(102,187,106,0.15)" }}>
+            {icalEnabled ? <LockIcon fontSize="small" /> : <LockOpenIcon fontSize="small" />}
+          </IconButton>
+        </Tooltip>
+        <Tooltip title={t.icalDates.openTooltip} arrow>
+          <IconButton onClick={() => setCalendarDialog({ open: true, listingId: lid })} size="small"
+            sx={{ color: "#ce93d8" }}>
+            <CalendarMonthIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title={t.editListing.editTooltip} arrow>
+          <IconButton onClick={() => handleOpenEdit(row)} size="small"
+            sx={{ color: "#90caf9", backgroundColor: "rgba(144,202,249,0.15)" }}>
+            <EditIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </>
+    );
+  };
+
+  const mobileFilters = [
+    { key: "title", label: t.listingTable.resortName, type: "text", value: filters.title },
+    { key: "resort_codes", label: t.listingTable.resortCodes, type: "text", value: filters.resort_codes },
+    {
+      key: "bedrooms", label: t.listingTable.bedrooms, type: "select", value: filters.bedrooms,
+      options: [
+        { value: "0", label: t.listingTable.studio },
+        { value: "1", label: "1 hab" },
+        { value: "2", label: "2 hab" },
+        { value: "3", label: "3 hab" },
+      ],
+    },
+    { key: "state", label: t.listingTable.state, type: "text", value: filters.state },
+  ];
+
+  // ─── Loading / Error ─────────────────────────────────────────────────────────
+
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
@@ -553,19 +710,47 @@ export const ListingTable = ({
 
   return (
     <Box sx={{ width: "100%" }}>
-      <DataGrid
-        rows={listings}
-        columns={columns}
-        getRowId={(row) => row.listing_id}
-        initialState={{
-          pagination: { paginationModel: { pageSize: 10 } },
-        }}
-        pageSizeOptions={[10, 25, 50, 100]}
-        disableRowSelectionOnClick
-        density="standard"
-        autoHeight
-        sx={dataGridTable}
-      />
+      {isMobile ? (
+        <UniversalMobilDataTable
+          rows={filteredListings}
+          columns={mobileColumns}
+          hideHeader
+          primaryField={(row) => row.title || row.listing_id}
+          getRowId={(row) => row.listing_id}
+          renderActions={mobileRenderActions}
+          actionsLabel={t.listingTable.actions}
+          loading={loading}
+          error={error ? (error.error || error.message || t.listingTable.loadError) : null}
+          emptyMessage={t.listingTable.loadError}
+          showTitle={false}
+          labelWidth={140}
+          rowsPerPageOptions={[13, 26, 100]}
+          subHeader={
+            <MobileFilterPanel
+              isOpen={filtersOpen}
+              filters={mobileFilters}
+              onFilterChange={handleFilterChange}
+              onSearch={() => {}}
+              onClear={handleClearFilters}
+            />
+          }
+        />
+      ) : (
+        <DataGrid
+          rows={filteredListings}
+          columns={columns}
+          getRowId={(row) => row.listing_id}
+          initialState={{
+            pagination: { paginationModel: { pageSize: 10 } },
+          }}
+          pageSizeOptions={[10, 25, 50, 100]}
+          disableRowSelectionOnClick
+          density="standard"
+          autoHeight
+          columnHeaderHeight={filtersOpen ? 82 : 56}
+          sx={dataGridTable}
+        />
+      )}
 
       {/* Dialog: toggle ical */}
       <Dialog

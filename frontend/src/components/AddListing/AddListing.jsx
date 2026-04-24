@@ -9,34 +9,14 @@ import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import AddIcon from "@mui/icons-material/Add";
 import { useCreateListingManualMutation } from "../../store/api/api";
-import { primaryIconButton } from "../../styles/styles";
+import { primaryIconButton, dialogPaperSx, greenButtonSx, cancelButtonSx, dialogTextFieldSx } from "../../styles/styles";
 import { t } from "../../i18n";
+import { validateResortCodes } from "../../utils/listingUtils";
 import { Box } from "@mui/material";
 
-const dialogPaperSx = {
-  backgroundColor: "#424242",
-  color: "#E0E0E0",
-  borderRadius: "1.5rem",
-};
-
-const textFieldSx = {
-  mt: 2,
-  "& .MuiOutlinedInput-root": {
-    borderRadius: "1rem",
-    color: "#E0E0E0",
-    "& fieldset": { borderColor: "#626262" },
-    "&:hover fieldset": { borderColor: "#16A34A" },
-    "&.Mui-focused fieldset": { borderColor: "#16A34A" },
-  },
-  "& .MuiInputLabel-root": { color: "#BDBDBD" },
-  "& .MuiInputLabel-root.Mui-focused": { color: "#16A34A" },
-};
+const textFieldSx = { mt: 2, ...dialogTextFieldSx };
 
 const BEDROOM_OPTIONS = ["0", "1", "2", "3"];
-const RESORT_CODE_RE = /^[A-Z0-9]{2,10}$/i;
-const validateResortCodes = (value) =>
-  value.trim() === "" ||
-  value.split(",").map((c) => c.trim()).filter(Boolean).every((c) => RESORT_CODE_RE.test(c));
 
 const initialForm = {
   listing_id: "",
@@ -202,23 +182,10 @@ export const AddListing = ({ alertRef }) => {
           </Box>
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center" }}>
-          <Button
-            onClick={handleAccept}
-            variant="contained"
-            disabled={!isFormValid}
-            sx={{
-              borderRadius: "1rem",
-              textTransform: "none",
-              backgroundColor: "#16A34A",
-              "&:hover": { backgroundColor: "#15803d" },
-            }}
-          >
+          <Button onClick={handleAccept} variant="contained" disabled={!isFormValid} sx={greenButtonSx}>
             {t.addListing.submitButton}
           </Button>
-          <Button
-            onClick={handleCloseForm}
-            sx={{ color: "#BDBDBD", borderRadius: "1rem" }}
-          >
+          <Button onClick={handleCloseForm} sx={cancelButtonSx}>
             {t.addListing.cancelButton}
           </Button>
         </DialogActions>
@@ -237,22 +204,10 @@ export const AddListing = ({ alertRef }) => {
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center" }}>
-          <Button
-            onClick={handleConfirmCreate}
-            variant="contained"
-            sx={{
-              borderRadius: "1rem",
-              textTransform: "none",
-              backgroundColor: "#16A34A",
-              "&:hover": { backgroundColor: "#15803d" },
-            }}
-          >
+          <Button onClick={handleConfirmCreate} variant="contained" sx={greenButtonSx}>
             {t.addListing.confirmButton}
           </Button>
-          <Button
-            onClick={handleCancelConfirm}
-            sx={{ color: "#BDBDBD", borderRadius: "1rem" }}
-          >
+          <Button onClick={handleCancelConfirm} sx={cancelButtonSx}>
             {t.addListing.confirmCancel}
           </Button>
         </DialogActions>

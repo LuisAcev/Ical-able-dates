@@ -69,6 +69,50 @@ export const actionIconButton = {
   },
 };
 
+// ================== SHARED TABLE COLORS ==================
+export const tableColors = {
+  bg: "#515151",
+  headerBg: "#3D3D3D",
+  surface: "#4A4A4A",
+  border: "#626262",
+  text: "#E0E0E0",
+  textMuted: "#BDBDBD",
+  primary: "#16A34A",
+  primaryHover: "rgba(22,163,74,0.15)",
+  hover: "#5E5E5E",
+};
+
+// ================== DIALOG STYLES ==================
+export const dialogPaperSx = {
+  backgroundColor: "#424242",
+  color: "#E0E0E0",
+  borderRadius: "1.5rem",
+};
+
+export const greenButtonSx = {
+  borderRadius: "1rem",
+  textTransform: "none",
+  backgroundColor: "#16A34A",
+  "&:hover": { backgroundColor: "#15803d" },
+};
+
+export const cancelButtonSx = {
+  color: "#BDBDBD",
+  borderRadius: "1rem",
+};
+
+export const dialogTextFieldSx = {
+  "& .MuiOutlinedInput-root": {
+    borderRadius: "1rem",
+    color: "#E0E0E0",
+    "& fieldset": { borderColor: "#626262" },
+    "&:hover fieldset": { borderColor: "#16A34A" },
+    "&.Mui-focused fieldset": { borderColor: "#16A34A" },
+  },
+  "& .MuiInputLabel-root": { color: "#BDBDBD" },
+  "& .MuiInputLabel-root.Mui-focused": { color: "#16A34A" },
+};
+
 // ================== DATA GRID ==================
 export const dataGridTable = {
   borderRadius: "1rem",

@@ -1,0 +1,1 @@
+export { UniversalMobilDataTable } from "./UniversalMobilDataTable";
