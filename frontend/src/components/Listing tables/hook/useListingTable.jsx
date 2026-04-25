@@ -21,6 +21,7 @@ export const useListingTable = (alertRef) => {
   const [isBackendUpdating, setIsBackendUpdating] = useState(false);
   const wasUpdatingRef = useRef(false);
   const updateInFlightRef = useRef(false);
+  const manualTriggerRef = useRef(false);
 
   const {
     data: listings = [],
@@ -55,7 +56,10 @@ export const useListingTable = (alertRef) => {
     setIsBackendUpdating(status?.updating ?? false);
   }, [status?.updating]);
 
-  // Cuando status pasa de updating=true a updating=false, limpiar y notificar
+  // Cuando status pasa de updating=true a updating=false, limpiar y notificar.
+  // wasUpdatingRef solo se setea desde el efecto (nunca desde handlers),
+  // evitando cleanup prematuro cuando status?.error cambia antes de que
+  // el backend arranque.
   useEffect(() => {
     if (wasUpdatingRef.current && !isUpdating) {
       const hadError = status?.error;
@@ -63,26 +67,29 @@ export const useListingTable = (alertRef) => {
       updateInFlightRef.current = false;
       refetchListings();
       dispatch(listingsApi.util.invalidateTags(['Dates']));
-      if (hadError) {
-        alertRef?.current?.showError(t.updateAll.updateError(hadError));
-      } else {
-        alertRef?.current?.showSuccess(t.updateAll.updateSuccess);
+      if (manualTriggerRef.current) {
+        manualTriggerRef.current = false;
+        if (hadError) {
+          alertRef?.current?.showError(t.updateAll.updateError(hadError));
+        } else {
+          alertRef?.current?.showSuccess(t.updateAll.updateSuccess);
+        }
       }
     }
     wasUpdatingRef.current = isUpdating;
-  }, [isUpdating, refetchListings, status?.error, alertRef]);
+  }, [isUpdating, refetchListings, alertRef]);
 
   const handleUpdateOne = useCallback(async (listingId) => {
     if (updateInFlightRef.current) return;
     updateInFlightRef.current = true;
     try {
       setUpdatingIds(new Set([listingId]));
-      wasUpdatingRef.current = true;
+      manualTriggerRef.current = true;
       await updateIcal(listingId).unwrap();
     } catch (err) {
       setUpdatingIds(new Set());
       updateInFlightRef.current = false;
-      wasUpdatingRef.current = false;
+      manualTriggerRef.current = false;
       alertRef?.current?.showError(
         err?.data?.detail || t.updateAll.startSingleError
       );
@@ -122,12 +129,12 @@ export const useListingTable = (alertRef) => {
     try {
       const allIds = new Set(listings.map((l) => l.listing_id));
       setUpdatingIds(allIds);
-      wasUpdatingRef.current = true;
+      manualTriggerRef.current = true;
       await updateAll().unwrap();
     } catch (err) {
       setUpdatingIds(new Set());
       updateInFlightRef.current = false;
-      wasUpdatingRef.current = false;
+      manualTriggerRef.current = false;
       alertRef?.current?.showError(
         err?.data?.detail || t.updateAll.startAllError
       );
@@ -139,7 +146,7 @@ export const useListingTable = (alertRef) => {
       await cancelUpdate().unwrap();
       setUpdatingIds(new Set());
       updateInFlightRef.current = false;
-      wasUpdatingRef.current = false;
+      manualTriggerRef.current = false;
       alertRef?.current?.showSuccess(t.updateAll.cancelSuccess);
     } catch (err) {
       alertRef?.current?.showError(err?.data?.detail || t.updateAll.cancelError);

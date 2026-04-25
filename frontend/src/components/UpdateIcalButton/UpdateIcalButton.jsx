@@ -9,14 +9,22 @@ import { primaryIconButton } from "../../styles/styles";
 import { t } from "../../i18n";
 
 export const UpdateIcalButton = ({ isUpdating, handleUpdateAll, handleCancelUpdate, status }) => {
+  const isSingle = status?.total === 1;
+
   const counterFull = isUpdating
-    ? status?.total
-      ? t.updateAll.updating(status.progress, status.total)
-      : t.updateAll.starting
+    ? isSingle
+      ? t.updateAll.starting
+      : status?.total
+        ? t.updateAll.updating(status.progress, status.total)
+        : t.updateAll.starting
     : null;
 
-  const counterShort = isUpdating && status?.total
-    ? `${status.progress}/${status.total}`
+  const counterShort = isUpdating
+    ? isSingle
+      ? null
+      : status?.total
+        ? `${status.progress}/${status.total}`
+        : null
     : null;
 
   return (

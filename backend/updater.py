@@ -109,12 +109,7 @@ def update_single_listing(listing_id):
             "error": error_msg,
         }
 
-    if failed_codes:
-        partial_error = f"Scraping fallido para: {', '.join(failed_codes)}"
-    elif not all_available:
-        partial_error = "0 fechas encontradas — verificar disponibilidad en Interval World"
-    else:
-        partial_error = None
+    partial_error = f"Scraping fallido para: {', '.join(failed_codes)}" if failed_codes else None
     update_last_error(listing_id, partial_error)
 
     # Guardar fechas crudas del scraper para regeneracion futura sin re-scrapear
@@ -135,7 +130,7 @@ def update_single_listing(listing_id):
         "listing_id": listing_id,
         "dates_found": len(available_sorted),
         "updated_at": ts,
-        "error": partial_error,
+        "error": None,
     }
 
 

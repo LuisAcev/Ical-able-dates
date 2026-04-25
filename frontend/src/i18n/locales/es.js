@@ -42,7 +42,7 @@ export const es = {
   updateAll: {
     button: "Actualizar todos los iCal",
     updating: (progress, total) => `Actualizando... ${progress}/${total}`,
-    starting: "Iniciando...",
+    starting: "Actualizando",
     updateError: (error) => `Error al actualizar: ${error}`,
     updateSuccess: "Listing actualizado correctamente",
     startSingleError: "Error al iniciar la actualización",
