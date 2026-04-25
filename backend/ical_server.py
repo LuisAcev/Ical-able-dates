@@ -51,11 +51,23 @@ async def _auto_update_loop():
     while True:
         try:
             logger.info("Auto-update: starting scheduled update...")
-            await asyncio.wait_for(
-                loop.run_in_executor(None, _run_update_all),
-                timeout=float(_TASK_TIMEOUT_SECONDS),
-            )
-            logger.info("Auto-update: completed. Next run in %d hours.", AUTO_UPDATE_HOURS)
+            skip = False
+            with _update_lock:
+                if _update_status["updating"]:
+                    logger.info("Auto-update: update ya en curso, saltando.")
+                    skip = True
+                else:
+                    listings_count = len(load_listings())
+                    _update_status.update(
+                        updating=True, current_listing=None,
+                        progress=0, total=listings_count, error=None,
+                    )
+            if not skip:
+                await asyncio.wait_for(
+                    loop.run_in_executor(None, _run_update_all),
+                    timeout=float(_TASK_TIMEOUT_SECONDS),
+                )
+                logger.info("Auto-update: completed. Next run in %d hours.", AUTO_UPDATE_HOURS)
         except asyncio.TimeoutError:
             logger.warning("Auto-update: timeout of %ds reached, releasing loop.", _TASK_TIMEOUT_SECONDS)
             _set_status(updating=False, current_listing=None, progress=0, total=0, error="Timeout de actualizacion")
@@ -77,11 +89,15 @@ async def _auto_retry_error_loop():
                 continue
             logger.info("Auto-retry: %d listing(s) con error, reintentando...", len(failed))
             for listing in failed:
+                lid = listing["listing_id"]
                 with _update_lock:
                     if _update_status["updating"]:
                         logger.info("Auto-retry: update en curso, saltando.")
                         break
-                lid = listing["listing_id"]
+                    _update_status.update(
+                        updating=True, current_listing=lid,
+                        progress=0, total=1, error=None,
+                    )
                 logger.info("Auto-retry: actualizando listing %s", lid)
                 await loop.run_in_executor(None, lambda l=lid: _run_update_single(l))
                 await asyncio.sleep(30)
@@ -577,7 +593,8 @@ def _set_status(**kwargs):
 
 
 def _run_update_single(listing_id):
-    """Background task: actualiza iCal de un listing. Estado inicial ya seteado por el endpoint."""
+    """Background task: actualiza iCal de un listing.
+    El estado updating=True debe estar ya seteado por quien llama (endpoint o auto-loop)."""
     _kill_chrome_zombies()
     try:
         _watchdog.arm(_TASK_TIMEOUT_SECONDS)
@@ -593,7 +610,8 @@ def _run_update_single(listing_id):
 
 
 def _run_update_all():
-    """Background task: actualiza iCal de todos los listings. Estado inicial ya seteado por el endpoint."""
+    """Background task: actualiza iCal de todos los listings.
+    El estado updating=True debe estar ya seteado por quien llama (endpoint o auto-loop)."""
     listings = load_listings()
     _kill_chrome_zombies()
     try:
