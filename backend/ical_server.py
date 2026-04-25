@@ -577,15 +577,7 @@ def _set_status(**kwargs):
 
 
 def _run_update_single(listing_id):
-    """Background task: actualiza iCal de un listing."""
-    with _update_lock:
-        if _update_status["updating"]:
-            return
-        _update_status.update(
-            updating=True, current_listing=listing_id,
-            progress=0, total=1, error=None,
-        )
-
+    """Background task: actualiza iCal de un listing. Estado inicial ya seteado por el endpoint."""
     _kill_chrome_zombies()
     try:
         _watchdog.arm(_TASK_TIMEOUT_SECONDS)
@@ -601,16 +593,8 @@ def _run_update_single(listing_id):
 
 
 def _run_update_all():
-    """Background task: actualiza iCal de todos los listings."""
-    with _update_lock:
-        if _update_status["updating"]:
-            return
-        listings = load_listings()
-        _update_status.update(
-            updating=True, current_listing=None,
-            progress=0, total=len(listings), error=None,
-        )
-
+    """Background task: actualiza iCal de todos los listings. Estado inicial ya seteado por el endpoint."""
+    listings = load_listings()
     _kill_chrome_zombies()
     try:
         _watchdog.arm(_TASK_TIMEOUT_SECONDS)
@@ -636,17 +620,18 @@ def _run_update_all():
 def api_update_single(listing_id: str, background_tasks: BackgroundTasks):
     """Lanza actualizacion de iCal de un listing en background."""
     _validate_listing_id_param(listing_id)
-    with _update_lock:
-        if _update_status["updating"]:
-            raise HTTPException(status_code=409, detail="Ya hay una actualizacion en progreso")
-
     existing = get_listing(listing_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Listing no encontrado")
-
     if not existing.get("ical_enabled", True):
         raise HTTPException(status_code=403, detail="La actualizacion iCal esta deshabilitada para este listing")
-
+    with _update_lock:
+        if _update_status["updating"]:
+            raise HTTPException(status_code=409, detail="Ya hay una actualizacion en progreso")
+        _update_status.update(
+            updating=True, current_listing=listing_id,
+            progress=0, total=1, error=None,
+        )
     background_tasks.add_task(_run_update_single, listing_id)
     return {"message": f"Actualizacion de {listing_id} iniciada"}
 
@@ -657,7 +642,11 @@ def api_update_all(background_tasks: BackgroundTasks):
     with _update_lock:
         if _update_status["updating"]:
             raise HTTPException(status_code=409, detail="Ya hay una actualizacion en progreso")
-
+        listings = load_listings()
+        _update_status.update(
+            updating=True, current_listing=None,
+            progress=0, total=len(listings), error=None,
+        )
     background_tasks.add_task(_run_update_all)
     return {"message": "Actualizacion masiva iniciada"}
 
