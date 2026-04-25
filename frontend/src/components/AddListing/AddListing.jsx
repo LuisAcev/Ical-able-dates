@@ -95,10 +95,18 @@ export const AddListing = ({ alertRef }) => {
       <Button
         variant="contained"
         onClick={handleOpen}
-        startIcon={<AddIcon />}
-        sx={{ ...primaryIconButton, "& svg": { width: 20, height: 20 } }}
+        startIcon={<AddIcon sx={{ width: 20, height: 20 }} />}
+        sx={{
+          ...primaryIconButton,
+          minWidth: "auto",
+          "& svg": { width: 20, height: 20 },
+          "& .MuiButton-startIcon": { mx: { xs: 0, md: "inherit" } },
+          px: { xs: "10px", md: "16px" },
+        }}
       >
-        {t.addListing.openButton}
+        <Box component="span" sx={{ display: { xs: "none", md: "inline" } }}>
+          {t.addListing.openButton}
+        </Box>
       </Button>
 
       {/* Modal 1: formulario */}

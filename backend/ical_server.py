@@ -135,19 +135,40 @@ _update_status = {
 
 # Timeout de seguridad total: 4h cubre 85 listings con reintentos (~3min/listing worst case)
 _TASK_TIMEOUT_SECONDS = 4 * 60 * 60
-_active_timer = None
 
-def _start_safety_timeout():
-    """Inicia un timer que libera el estado updating si se excede el timeout."""
-    def _timeout_handler():
-        with _update_lock:
-            if _update_status["updating"]:
-                logger.warning("Safety timeout: update exceeded %ds", _TASK_TIMEOUT_SECONDS)
-                _update_status.update(updating=False, current_listing=None, error="Update timeout")
-    timer = threading.Timer(_TASK_TIMEOUT_SECONDS, _timeout_handler)
-    timer.daemon = True
-    timer.start()
-    return timer
+
+class _SafetyWatchdog:
+    """Hilo watchdog único que reemplaza threading.Timer por llamada.
+    Evita RuntimeError: can't start new thread al acumular 85+ timers."""
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._deadline = None
+        t = threading.Thread(target=self._loop, daemon=True, name="safety-watchdog")
+        t.start()
+
+    def _loop(self):
+        while True:
+            time.sleep(15)
+            with self._lock:
+                if self._deadline is None or time.time() < self._deadline:
+                    continue
+                self._deadline = None
+            with _update_lock:
+                if _update_status["updating"]:
+                    logger.warning("Safety timeout: update exceeded %ds", _TASK_TIMEOUT_SECONDS)
+                    _update_status.update(updating=False, current_listing=None, error="Update timeout")
+
+    def arm(self, seconds):
+        with self._lock:
+            self._deadline = time.time() + seconds
+
+    def disarm(self):
+        with self._lock:
+            self._deadline = None
+
+
+_watchdog = _SafetyWatchdog()
 
 
 # ================== HELPERS ==================
@@ -565,13 +586,9 @@ def _run_update_single(listing_id):
             progress=0, total=1, error=None,
         )
 
-    global _active_timer
     _kill_chrome_zombies()
-    timer = None
     try:
-        timer = _start_safety_timeout()
-        with _update_lock:
-            _active_timer = timer
+        _watchdog.arm(_TASK_TIMEOUT_SECONDS)
         from updater import update_single_listing
         result = update_single_listing(listing_id)
         _set_status(error=result.get("error"))
@@ -579,16 +596,12 @@ def _run_update_single(listing_id):
         logger.exception("Error in update_single: %s", e)
         _set_status(error="Error interno al actualizar listing")
     finally:
-        if timer is not None:
-            timer.cancel()
-        with _update_lock:
-            _active_timer = None
+        _watchdog.disarm()
         _set_status(updating=False, current_listing=None, progress=1)
 
 
 def _run_update_all():
     """Background task: actualiza iCal de todos los listings."""
-    global _active_timer
     with _update_lock:
         if _update_status["updating"]:
             return
@@ -599,11 +612,8 @@ def _run_update_all():
         )
 
     _kill_chrome_zombies()
-    timer = None
     try:
-        timer = _start_safety_timeout()
-        with _update_lock:
-            _active_timer = timer
+        _watchdog.arm(_TASK_TIMEOUT_SECONDS)
         from updater import update_single_listing
         for i, listing in enumerate(listings):
             lid = listing["listing_id"]
@@ -618,10 +628,7 @@ def _run_update_all():
         logger.exception("Error in update_all: %s", e)
         _set_status(error="Error interno en actualizacion masiva")
     finally:
-        if timer is not None:
-            timer.cancel()
-        with _update_lock:
-            _active_timer = None
+        _watchdog.disarm()
         _set_status(updating=False, current_listing=None)
 
 
@@ -658,14 +665,11 @@ def api_update_all(background_tasks: BackgroundTasks):
 @app.post("/api/update/cancel", status_code=200)
 def api_cancel_update():
     """Cancela la actualizacion en curso y libera el estado."""
-    global _active_timer
     with _update_lock:
         if not _update_status["updating"]:
             raise HTTPException(status_code=409, detail="No hay una actualizacion en curso")
-        if _active_timer is not None:
-            _active_timer.cancel()
-            _active_timer = None
         _update_status.update(updating=False, current_listing=None, error="Cancelled by user")
+    _watchdog.disarm()
     _kill_chrome_zombies()
     logger.info("Update cancelled by user.")
     return {"message": "Update cancelled"}

@@ -20,7 +20,7 @@ export const UpdateIcalButton = ({ isUpdating, handleUpdateAll, handleCancelUpda
     : null;
 
   return (
-    <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+    <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexShrink: 0 }}>
       {isUpdating ? (
         <Box
           sx={{

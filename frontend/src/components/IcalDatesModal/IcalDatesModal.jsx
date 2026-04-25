@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Box from "@mui/material/Box";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -117,23 +117,25 @@ export const IcalDatesModal = ({ open, onClose, listingId, alertRef, onUpdateSta
   const [pendingOverrideDate, setPendingOverrideDate] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
 
-  useEffect(() => {
-    if (data) {
-      setLocalManual(data.manual_dates ?? []);
-      setLocalOverride(data.available_override_dates ?? []);
-      setLocalStartDate(data.start_date ? dayjs(data.start_date) : null);
-    }
-  }, [data]);
+  // Marca si ya se inicializó el estado local para la sesión actual del modal.
+  // Se resetea cada vez que el modal cierra, forzando re-inicialización al reabrir
+  // incluso cuando RTK Query devuelve datos cacheados sin cambiar la referencia.
+  const initializedRef = useRef(false);
 
   useEffect(() => {
     if (!open) {
+      initializedRef.current = false;
       setPendingDate(null);
       setPendingOverrideDate(null);
-      setLocalManual([]);
-      setLocalOverride([]);
-      setLocalStartDate(null);
+      return;
     }
-  }, [open]);
+    if (data && !initializedRef.current) {
+      setLocalManual(data.manual_dates ?? []);
+      setLocalOverride(data.available_override_dates ?? []);
+      setLocalStartDate(data.start_date ? dayjs(data.start_date) : null);
+      initializedRef.current = true;
+    }
+  }, [open, data]);
 
   const blockedSet = useMemo(() => new Set(data?.blocked_dates || []), [data?.blocked_dates]);
   const availableSet = useMemo(() => new Set(data?.available_dates || []), [data?.available_dates]);
