@@ -597,7 +597,7 @@ def _run_update_single(listing_id):
         _set_status(error="Error interno al actualizar listing")
     finally:
         _watchdog.disarm()
-        _set_status(updating=False, current_listing=None, progress=1)
+        _set_status(updating=False, current_listing=None, progress=0, total=0)
 
 
 def _run_update_all():
@@ -629,7 +629,7 @@ def _run_update_all():
         _set_status(error="Error interno en actualizacion masiva")
     finally:
         _watchdog.disarm()
-        _set_status(updating=False, current_listing=None)
+        _set_status(updating=False, current_listing=None, progress=0, total=0)
 
 
 @app.post("/api/listings/{listing_id}/update", status_code=202)

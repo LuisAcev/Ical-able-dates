@@ -107,6 +107,7 @@ function CustomDay({ day, blockedSet, availableSet, manualSet, overrideSet, pend
 export const IcalDatesModal = ({ open, onClose, listingId, alertRef, onUpdateStarted }) => {
   const { data, isLoading, isError } = useGetListingDatesQuery(listingId, {
     skip: !open || !listingId,
+    refetchOnMountOrArgChange: true,
   });
   const [saveManualDates] = useSaveManualDatesMutation();
 
@@ -117,23 +118,23 @@ export const IcalDatesModal = ({ open, onClose, listingId, alertRef, onUpdateSta
   const [pendingOverrideDate, setPendingOverrideDate] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
 
-  // Marca si ya se inicializó el estado local para la sesión actual del modal.
-  // Se resetea cada vez que el modal cierra, forzando re-inicialización al reabrir
-  // incluso cuando RTK Query devuelve datos cacheados sin cambiar la referencia.
-  const initializedRef = useRef(false);
+  // Guarda la referencia del objeto `data` con el que se inicializó.
+  // Si RTK Query devuelve un nuevo objeto (refresco/invalidación), re-inicializa
+  // automáticamente. Al cerrar el modal se resetea para forzar re-init al reabrir.
+  const lastDataRef = useRef(null);
 
   useEffect(() => {
     if (!open) {
-      initializedRef.current = false;
+      lastDataRef.current = null;
       setPendingDate(null);
       setPendingOverrideDate(null);
       return;
     }
-    if (data && !initializedRef.current) {
+    if (data && data !== lastDataRef.current) {
       setLocalManual(data.manual_dates ?? []);
       setLocalOverride(data.available_override_dates ?? []);
       setLocalStartDate(data.start_date ? dayjs(data.start_date) : null);
-      initializedRef.current = true;
+      lastDataRef.current = data;
     }
   }, [open, data]);
 
