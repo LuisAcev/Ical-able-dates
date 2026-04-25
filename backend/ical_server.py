@@ -58,7 +58,7 @@ async def _auto_update_loop():
             logger.info("Auto-update: completed. Next run in %d hours.", AUTO_UPDATE_HOURS)
         except asyncio.TimeoutError:
             logger.warning("Auto-update: timeout of %ds reached, releasing loop.", _TASK_TIMEOUT_SECONDS)
-            _set_status(updating=False, current_listing=None, error="Timeout de actualizacion")
+            _set_status(updating=False, current_listing=None, progress=0, total=0, error="Timeout de actualizacion")
         except Exception as e:
             logger.exception("Auto-update: unexpected error, will retry in %dh: %s", AUTO_UPDATE_HOURS, e)
         await asyncio.sleep(AUTO_UPDATE_HOURS * 3600)
@@ -157,7 +157,7 @@ class _SafetyWatchdog:
             with _update_lock:
                 if _update_status["updating"]:
                     logger.warning("Safety timeout: update exceeded %ds", _TASK_TIMEOUT_SECONDS)
-                    _update_status.update(updating=False, current_listing=None, error="Update timeout")
+                    _update_status.update(updating=False, current_listing=None, progress=0, total=0, error="Update timeout")
 
     def arm(self, seconds):
         with self._lock:
@@ -591,7 +591,7 @@ def _run_update_single(listing_id):
         _watchdog.arm(_TASK_TIMEOUT_SECONDS)
         from updater import update_single_listing
         result = update_single_listing(listing_id)
-        _set_status(error=result.get("error"))
+        _set_status(progress=1, error=result.get("error"))
     except Exception as e:
         logger.exception("Error in update_single: %s", e)
         _set_status(error="Error interno al actualizar listing")
@@ -668,7 +668,7 @@ def api_cancel_update():
     with _update_lock:
         if not _update_status["updating"]:
             raise HTTPException(status_code=409, detail="No hay una actualizacion en curso")
-        _update_status.update(updating=False, current_listing=None, error="Cancelled by user")
+        _update_status.update(updating=False, current_listing=None, progress=0, total=0, error="Cancelled by user")
     _watchdog.disarm()
     _kill_chrome_zombies()
     logger.info("Update cancelled by user.")
