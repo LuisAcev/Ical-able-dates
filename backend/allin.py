@@ -452,10 +452,12 @@ def robust_continue_in_exchange_form(page, max_retries=4):
                 pass
         wait_until = time.time() + int(8 * SPEED_FACTOR) + attempt * 2
         while time.time() < wait_until:
-            if page.url != prev_url and get_exchange_frame(page) is None:
+            cur = page.url
+            if cur != prev_url and get_exchange_frame(page) is None:
                 time.sleep(0.6 * SPEED_FACTOR)
                 return True
             time.sleep(0.3)
+        logger.info("Continue attempt %d timeout. url=%s", attempt, page.url)
         time.sleep(0.5 * SPEED_FACTOR)
     return False
 
@@ -710,22 +712,46 @@ def collect_available_dates(resort_code, listing_id, bedroom_filter):
             logger.info("[4] Form filled. Clicking Continue...")
 
             if not robust_continue_in_exchange_form(page_ref[0]):
-                logger.error("[5] Could not click Continue. url=%s", page_ref[0].url)
-                return []
-            logger.info("[5] Continue OK. url=%s", page_ref[0].url)
+                # Ruta alterna: ?a=0 no tiene depósitos para este resort.
+                # Ir directo a My Units (?a=204) → Vacation Exchange → buscar en ?a=242.
+                logger.info("[5] Continue falló. Intentando ruta alterna via ?a=204...")
+                page_ref[0].goto("https://www.intervalworld.com/web/cs?a=204", wait_until="domcontentloaded")
+                time.sleep(1.5 * SPEED_FACTOR)
 
-            if not wait_results_or_timeout(page_ref[0], "after-continue"):
-                return []
-            logger.info("[6] Results page loaded. url=%s", page_ref[0].url)
+                if not wait_results_or_timeout(page_ref[0], "my-units"):
+                    logger.error("[5alt] My Units no cargo. url=%s", page_ref[0].url)
+                    return []
 
-            if not click_any_unredeemed_vacation_exchange(page_ref, timeout=VACATION_EXCHANGE_TIMEOUT):
-                logger.error("[7] Could not click Vacation Exchange. url=%s", page_ref[0].url)
-                return []
-            logger.info("[7] Vacation Exchange clicked. url=%s", page_ref[0].url)
+                if not click_any_unredeemed_vacation_exchange(page_ref, timeout=VACATION_EXCHANGE_TIMEOUT):
+                    logger.error("[5alt] No se pudo clickear Vacation Exchange en My Units")
+                    return []
+                logger.info("[5alt] Vacation Exchange clickeado. url=%s", page_ref[0].url)
 
-            if not wait_results_or_timeout(page_ref[0], "after-vexchange"):
-                return []
-            logger.info("[8] Exchange results loaded.")
+                time.sleep(1.0 * SPEED_FACTOR)
+                alt_frame = get_exchange_frame(page_ref[0]) or page_ref[0]
+                if get_exchange_frame(page_ref[0]):
+                    fast_set_resort_code(alt_frame, resort_code)
+                    set_date_field(alt_frame, "fromDate", DATE_RANGE_START.strftime("%m/%d/%Y"), fast=True)
+                    set_date_field(alt_frame, "toDate", DATE_RANGE_END.strftime("%m/%d/%Y"), fast=False)
+                    select_guests_in_exchange_form(alt_frame)
+                    logger.info("[5alt] Formulario ?a=242 llenado. Clickeando Search...")
+                    robust_continue_in_exchange_form(page_ref[0])
+                    wait_results_or_timeout(page_ref[0], "after-alt-search")
+            else:
+                logger.info("[5] Continue OK. url=%s", page_ref[0].url)
+
+                if not wait_results_or_timeout(page_ref[0], "after-continue"):
+                    return []
+                logger.info("[6] Results page loaded. url=%s", page_ref[0].url)
+
+                if not click_any_unredeemed_vacation_exchange(page_ref, timeout=VACATION_EXCHANGE_TIMEOUT):
+                    logger.error("[7] Could not click Vacation Exchange. url=%s", page_ref[0].url)
+                    return []
+                logger.info("[7] Vacation Exchange clicked. url=%s", page_ref[0].url)
+
+                if not wait_results_or_timeout(page_ref[0], "after-vexchange"):
+                    return []
+                logger.info("[8] Exchange results loaded.")
 
             url_before_more = page_ref[0].url
             _ = click_more_dates_until_exhausted(page_ref[0], resort_code, pause=MORE_DATES_PAUSE)
