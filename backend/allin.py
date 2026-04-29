@@ -605,6 +605,9 @@ def _collect_from_strong_rows(block, required_bedrooms):
                     if val.isdigit():
                         bd = val
                         break
+                    if val.upper() in ("E", "S"):  # Efficiency/Studio = 0 bedrooms
+                        bd = "0"
+                        break
                 if bd is None:
                     next_tr_js = tr.evaluate_handle("el => el.nextElementSibling")
                     next_tr = next_tr_js.as_element()
@@ -613,6 +616,9 @@ def _collect_from_strong_rows(block, required_bedrooms):
                             val = (sp.text_content() or "").strip()
                             if val.isdigit():
                                 bd = val
+                                break
+                            if val.upper() in ("E", "S"):
+                                bd = "0"
                                 break
         except Exception:
             pass
@@ -639,7 +645,8 @@ def _collect_from_avail_divs(block, required_bedrooms):
             if next_div:
                 bedroom_span = next_div.query_selector("span#bedrooms")
                 if bedroom_span:
-                    bd = (bedroom_span.text_content() or "").strip()
+                    raw = (bedroom_span.text_content() or "").strip()
+                    bd = "0" if raw.upper() in ("E", "S") else raw
         except Exception:
             pass
         if required_bedrooms and (bd is None or bd != required_bedrooms):
