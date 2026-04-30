@@ -732,51 +732,58 @@ def collect_available_dates(resort_code, listing_id, bedroom_filter):
                 # "Vacation Exchange" — este es DISTINTO al de los resultados del banco.
                 # El botón del banco está en filas con clase unit_info (excluído).
                 # El de My Units está en otra estructura de la página.
+                # Scroll para cargar la sección My Units (lazy load)
+                for _ in range(6):
+                    page_ref[0].evaluate("window.scrollBy(0, 500)")
+                    time.sleep(0.3)
+
                 found_alt = False
+                # Selectors en orden de especificidad.
+                # IMPORTANTE: excluir nav/header (el link ?a=211 del menú superior)
+                # y excluir filas unit_info del banco de depósitos.
+                # Solo queremos el botón "Vacation Exchange" de la sección My Units.
                 for sel in [
-                    # Imagen con src vexchange fuera de filas unit_info
                     "xpath=//input[@type='image' and contains(@src,'vexchange')"
-                    " and not(ancestor::tr[contains(@class,'unit_info')])]",
-                    # Link con texto vacation exchange fuera de filas unit_info
+                    " and not(ancestor::tr[contains(@class,'unit_info')])"
+                    " and not(ancestor::*[contains(@class,'nav') or contains(@class,'header')"
+                    " or contains(@id,'nav') or contains(@id,'header')])]",
                     "xpath=//a[contains(translate(normalize-space(.),"
                     "'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'vacation exchange')"
-                    " and not(ancestor::tr[contains(@class,'unit_info')])]",
-                    # Fallback: cualquier vacation exchange visible
-                    "xpath=//a[contains(translate(normalize-space(.),"
-                    "'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'vacation exchange')]",
-                    "xpath=//input[@type='image' and contains(@src,'vexchange')]",
+                    " and not(ancestor::tr[contains(@class,'unit_info')])"
+                    " and not(ancestor::*[contains(@class,'nav') or contains(@class,'header')"
+                    " or contains(@id,'nav') or contains(@id,'header')])"
+                    " and not(contains(@href,'a=211'))]",
                 ]:
                     try:
-                        # Scroll para cargar elementos lazy
-                        for _ in range(4):
-                            page_ref[0].evaluate("window.scrollBy(0, 600)")
-                            time.sleep(0.3)
                         els = page_ref[0].query_selector_all(sel)
-                        if els:
-                            tag = els[0].evaluate("el => el.tagName")
-                            href = els[0].get_attribute("href") or els[0].get_attribute("src") or ""
-                            logger.info("[5alt] My Units btn: <%s> href=%s sel=%s", tag, href[:60], sel[:50])
-                            before_url = page_ref[0].url
-                            before_ids = {id(p) for p in page_ref[0].context.pages}
-                            els[0].scroll_into_view_if_needed()
+                        # Filtrar solo los visibles
+                        visible = [e for e in els if e.is_visible()]
+                        if not visible:
+                            continue
+                        el = visible[0]
+                        tag = el.evaluate("el => el.tagName")
+                        href = el.get_attribute("href") or el.get_attribute("src") or ""
+                        logger.info("[5alt] My Units btn: <%s> href=%s", tag, href[:60])
+                        before_url = page_ref[0].url
+                        before_ids = {id(p) for p in page_ref[0].context.pages}
+                        try:
+                            el.click()
+                        except Exception:
+                            _js_click(el)
+                        time.sleep(1.2 * SPEED_FACTOR)
+                        new_pages = [p for p in page_ref[0].context.pages if id(p) not in before_ids]
+                        if new_pages:
+                            new_page = new_pages[0]
                             try:
-                                els[0].click()
+                                new_page.wait_for_load_state("domcontentloaded", timeout=15000)
                             except Exception:
-                                _js_click(els[0])
-                            time.sleep(1.2 * SPEED_FACTOR)
-                            new_pages = [p for p in page_ref[0].context.pages if id(p) not in before_ids]
-                            if new_pages:
-                                new_page = new_pages[0]
-                                try:
-                                    new_page.wait_for_load_state("domcontentloaded", timeout=15000)
-                                except Exception:
-                                    pass
-                                page_ref[0] = new_page
-                                found_alt = True
-                                break
-                            if page_ref[0].url != before_url:
-                                found_alt = True
-                                break
+                                pass
+                            page_ref[0] = new_page
+                            found_alt = True
+                            break
+                        if page_ref[0].url != before_url:
+                            found_alt = True
+                            break
                     except Exception as e:
                         logger.warning("[5alt] selector error: %s", e)
                     if found_alt:
