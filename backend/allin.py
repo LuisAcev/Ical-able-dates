@@ -738,21 +738,22 @@ def collect_available_dates(resort_code, listing_id, bedroom_filter):
                     time.sleep(0.3)
 
                 found_alt = False
-                # Selectors en orden de especificidad.
-                # IMPORTANTE: excluir nav/header (el link ?a=211 del menú superior)
-                # y excluir filas unit_info del banco de depósitos.
-                # Solo queremos el botón "Vacation Exchange" de la sección My Units.
+                # Solo excluir el link del menú nav (?a=211) y filas unit_info del banco.
+                # is_visible() descarta elementos ocultos sin necesitar filtros de clase nav/header.
                 for sel in [
+                    # Input imagen vexchange fuera de resultados del banco
                     "xpath=//input[@type='image' and contains(@src,'vexchange')"
-                    " and not(ancestor::tr[contains(@class,'unit_info')])"
-                    " and not(ancestor::*[contains(@class,'nav') or contains(@class,'header')"
-                    " or contains(@id,'nav') or contains(@id,'header')])]",
+                    " and not(ancestor::tr[contains(@class,'unit_info')])]",
+                    # Link con texto vacation exchange, excluir solo ?a=211 y unit_info
                     "xpath=//a[contains(translate(normalize-space(.),"
                     "'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'vacation exchange')"
                     " and not(ancestor::tr[contains(@class,'unit_info')])"
-                    " and not(ancestor::*[contains(@class,'nav') or contains(@class,'header')"
-                    " or contains(@id,'nav') or contains(@id,'header')])"
                     " and not(contains(@href,'a=211'))]",
+                    # Fallback: cualquier link vacation exchange visible (sin restricción)
+                    "xpath=//a[contains(translate(normalize-space(.),"
+                    "'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'vacation exchange')"
+                    " and not(contains(@href,'a=211'))]",
+                    "xpath=//input[@type='image' and contains(@src,'vexchange')]",
                 ]:
                     try:
                         els = page_ref[0].query_selector_all(sel)
