@@ -12,6 +12,7 @@ Uso:
 """
 
 import asyncio
+import concurrent.futures
 import logging
 import os
 import re
@@ -51,7 +52,7 @@ async def _auto_update_loop():
         try:
             logger.info("Auto-update: starting scheduled update...")
             await asyncio.wait_for(
-                loop.run_in_executor(None, _run_update_all),
+                loop.run_in_executor(_scraper_executor, _run_update_all),
                 timeout=float(_TASK_TIMEOUT_SECONDS),
             )
             logger.info("Auto-update: completed. Next run in %d hours.", AUTO_UPDATE_HOURS)
@@ -82,7 +83,7 @@ async def _auto_retry_error_loop():
                         break
                 lid = listing["listing_id"]
                 logger.info("Auto-retry: actualizando listing %s", lid)
-                await loop.run_in_executor(None, lambda l=lid: _run_update_single(l))
+                await loop.run_in_executor(_scraper_executor, lambda l=lid: _run_update_single(l))
                 await asyncio.sleep(30)
         except Exception as e:
             logger.exception("Auto-retry: error inesperado: %s", e)
@@ -168,6 +169,13 @@ class _SafetyWatchdog:
 
 
 _watchdog = _SafetyWatchdog()
+
+# Executor acotado para scraping — evita RuntimeError: can't start new thread
+# al acumular threads de runs anteriores. max_workers=1 porque los scrapers
+# ya son secuenciales; el exceso se encola en vez de crashear.
+_scraper_executor = concurrent.futures.ThreadPoolExecutor(
+    max_workers=1, thread_name_prefix="scraper"
+)
 
 
 # ================== HELPERS ==================
