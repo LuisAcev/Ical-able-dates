@@ -720,85 +720,23 @@ def collect_available_dates(resort_code, listing_id, bedroom_filter):
 
             if not robust_continue_in_exchange_form(page_ref[0]):
                 # Ruta alterna: el banco de depósitos no tiene semanas para este resort.
-                # Volver a ?a=0, clickear "Vacation Exchange" desde la sección My Units
-                # (no desde resultados del banco) → llega a ?a=242 con disponibilidad directa.
-                logger.info("[5] Continue falló. Intentando ruta alterna via My Units en ?a=0...")
-
-                # Volver al formulario limpio
+                # Volver a ?a=0 limpio y usar click_any_unredeemed_vacation_exchange — la misma
+                # función que funciona en ?a=204 — para clickear el botón Vacation Exchange
+                # de la sección My Units, que lleva a ?a=240 con disponibilidad directa.
+                logger.info("[5] Continue falló. Intentando ruta alterna via My Units...")
                 page_ref[0].goto("https://www.intervalworld.com/web/cs?a=0", wait_until="domcontentloaded")
+                time.sleep(2.0 * SPEED_FACTOR)
+
+                if not click_any_unredeemed_vacation_exchange(page_ref, timeout=VACATION_EXCHANGE_TIMEOUT):
+                    raise Exception(
+                        "Sin semanas disponibles para intercambio — "
+                        "verificar depósitos activos en Interval World"
+                    )
+
+                logger.info("[5alt] Vacation Exchange clickeado. url=%s", page_ref[0].url)
                 time.sleep(1.5 * SPEED_FACTOR)
 
-                # Hacer scroll hasta la sección My Units y clickear su botón
-                # "Vacation Exchange" — este es DISTINTO al de los resultados del banco.
-                # El botón del banco está en filas con clase unit_info (excluído).
-                # El de My Units está en otra estructura de la página.
-                # Scroll para cargar la sección My Units (lazy load)
-                for _ in range(6):
-                    page_ref[0].evaluate("window.scrollBy(0, 500)")
-                    time.sleep(0.3)
-
-                found_alt = False
-                # Solo excluir el link del menú nav (?a=211) y filas unit_info del banco.
-                # is_visible() descarta elementos ocultos sin necesitar filtros de clase nav/header.
-                for sel in [
-                    # Input imagen vexchange fuera de resultados del banco
-                    "xpath=//input[@type='image' and contains(@src,'vexchange')"
-                    " and not(ancestor::tr[contains(@class,'unit_info')])]",
-                    # Link con texto vacation exchange, excluir solo ?a=211 y unit_info
-                    "xpath=//a[contains(translate(normalize-space(.),"
-                    "'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'vacation exchange')"
-                    " and not(ancestor::tr[contains(@class,'unit_info')])"
-                    " and not(contains(@href,'a=211'))]",
-                    # Fallback: cualquier link vacation exchange visible (sin restricción)
-                    "xpath=//a[contains(translate(normalize-space(.),"
-                    "'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'vacation exchange')"
-                    " and not(contains(@href,'a=211'))]",
-                    "xpath=//input[@type='image' and contains(@src,'vexchange')]",
-                ]:
-                    try:
-                        els = page_ref[0].query_selector_all(sel)
-                        # Filtrar solo los visibles
-                        visible = [e for e in els if e.is_visible()]
-                        if not visible:
-                            continue
-                        el = visible[0]
-                        tag = el.evaluate("el => el.tagName")
-                        href = el.get_attribute("href") or el.get_attribute("src") or ""
-                        logger.info("[5alt] My Units btn: <%s> href=%s", tag, href[:60])
-                        before_url = page_ref[0].url
-                        before_ids = {id(p) for p in page_ref[0].context.pages}
-                        try:
-                            el.click()
-                        except Exception:
-                            _js_click(el)
-                        time.sleep(1.2 * SPEED_FACTOR)
-                        new_pages = [p for p in page_ref[0].context.pages if id(p) not in before_ids]
-                        if new_pages:
-                            new_page = new_pages[0]
-                            try:
-                                new_page.wait_for_load_state("domcontentloaded", timeout=15000)
-                            except Exception:
-                                pass
-                            page_ref[0] = new_page
-                            found_alt = True
-                            break
-                        if page_ref[0].url != before_url:
-                            found_alt = True
-                            break
-                    except Exception as e:
-                        logger.warning("[5alt] selector error: %s", e)
-                    if found_alt:
-                        break
-
-                if not found_alt:
-                    logger.error("[5alt] No se encontró botón Vacation Exchange en My Units")
-                    return []
-
-                logger.info("[5alt] Navegado a url=%s", page_ref[0].url)
-                time.sleep(1.0 * SPEED_FACTOR)
-
-                # Ahora deberíamos estar en ?a=242 con el formulario de búsqueda directa.
-                # Llenarlo con el resort code y buscar.
+                # En ?a=240: llenar resort code específico y buscar disponibilidad directa
                 alt_frame = get_exchange_frame(page_ref[0]) or page_ref[0]
                 if get_exchange_frame(page_ref[0]):
                     fast_set_resort_code(alt_frame, resort_code)
@@ -809,7 +747,7 @@ def collect_available_dates(resort_code, listing_id, bedroom_filter):
                     robust_continue_in_exchange_form(page_ref[0])
                     wait_results_or_timeout(page_ref[0], "after-alt-search")
                 else:
-                    logger.warning("[5alt] No se encontró exchange frame en %s", page_ref[0].url)
+                    logger.warning("[5alt] No hay exchange frame en %s", page_ref[0].url)
             else:
                 logger.info("[5] Continue OK. url=%s", page_ref[0].url)
 
