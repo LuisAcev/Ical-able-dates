@@ -40,13 +40,23 @@ DATE_INPUT_RETRIES = int(_env("DATE_INPUT_RETRIES", "2"))
 
 # ================== AIRBNB ==================
 AIRBNB_PROFILE_DIR = _env("AIRBNB_PROFILE_DIR", "")
+AIRBNB_BASE_URL = _env("AIRBNB_BASE_URL", "https://www.airbnb.com.co")
+AIRBNB_REQUEST_DELAY = float(_env("AIRBNB_REQUEST_DELAY", "4"))
 
 # ================== AUTO UPDATE ==================
 AUTO_UPDATE_HOURS = int(_env("AUTO_UPDATE_HOURS", "24"))
+RETRY_ERROR_HOURS = int(_env("RETRY_ERROR_HOURS", "2"))
+
+# ================== SCRAPER PROCESS ==================
+WAIT_RESULTS_TIMEOUT = int(_env("WAIT_RESULTS_TIMEOUT", "20"))
+CHROME_KILL_SLEEP = float(_env("CHROME_KILL_SLEEP", "2"))
 
 # ================== ICAL SERVER ==================
 ICAL_SERVER_HOST = _env("ICAL_SERVER_HOST", "0.0.0.0")
-ICAL_SERVER_PORT = int(os.getenv("PORT") or _env("ICAL_SERVER_PORT", "8085"))
+try:
+    ICAL_SERVER_PORT = int(os.getenv("PORT") or _env("ICAL_SERVER_PORT", "8085"))
+except ValueError as e:
+    raise RuntimeError("PORT o ICAL_SERVER_PORT debe ser un entero valido") from e
 ICS_OUTPUT_DIR = Path(_env("ICS_OUTPUT_DIR", str(Path(__file__).parent / "data" / "ics_files")))
 ICAL_BASE_URL = _env("ICAL_BASE_URL", "")
 CORS_ORIGINS = [o.strip() for o in _env("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",") if o.strip()]

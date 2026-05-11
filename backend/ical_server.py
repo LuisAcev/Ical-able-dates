@@ -16,9 +16,11 @@ import concurrent.futures
 import logging
 import os
 import re
-import subprocess
 import threading
 import time
+from contextlib import asynccontextmanager
+from datetime import datetime, timedelta
+from pathlib import Path
 
 logging.basicConfig(
     level=logging.INFO,
@@ -26,22 +28,27 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger(__name__)
-from contextlib import asynccontextmanager
-from pathlib import Path
+
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 import uvicorn
 
-from config import ICS_OUTPUT_DIR, ICAL_SERVER_HOST, ICAL_SERVER_PORT, CORS_ORIGINS, ICAL_BASE_URL, DATE_RANGE_START, DATE_RANGE_END, AUTO_UPDATE_HOURS
-from ical_gen import parse_ics_file, generate_ics_for_listing
+from config import (
+    ICS_OUTPUT_DIR, ICAL_SERVER_HOST, ICAL_SERVER_PORT, CORS_ORIGINS,
+    ICAL_BASE_URL, DATE_RANGE_START, DATE_RANGE_END,
+    AUTO_UPDATE_HOURS, RETRY_ERROR_HOURS, CHROME_KILL_SLEEP,
+)
+from ical_gen import parse_ics_file, generate_ics_for_listing, date_range_set
 from storage import (
     load_listings, upsert_listing, update_timestamp, delete_listing,
     build_initial_listings, get_listing, ensure_ical_enabled_field,
     ensure_manual_dates_field, ensure_address_state_fields, ensure_start_date_field,
     ensure_last_error_field, ensure_available_override_field, get_setting, save_setting,
 )
+from updater import update_single_listing, update_all_listings, kill_chrome_zombies
+from allin import apply_manual_blocked_dates, apply_manual_available_override
 
 
 async def _auto_update_loop():
@@ -66,11 +73,10 @@ async def _auto_update_loop():
 
 async def _auto_retry_error_loop():
     """Reintenta listings con error cada RETRY_ERROR_HOURS horas."""
-    retry_hours = int(os.getenv("RETRY_ERROR_HOURS", "2"))
     await asyncio.sleep(300)
     loop = asyncio.get_running_loop()
     while True:
-        await asyncio.sleep(retry_hours * 3600)
+        await asyncio.sleep(RETRY_ERROR_HOURS * 3600)
         try:
             failed = [l for l in load_listings() if l.get("last_error")]
             if not failed:
@@ -99,7 +105,7 @@ async def _auto_retry_error_loop():
 @asynccontextmanager
 async def lifespan(_app):
     """Inicializa la data de listings si no existe."""
-    _kill_chrome_zombies()
+    kill_chrome_zombies(sleep_seconds=CHROME_KILL_SLEEP)
     os.makedirs(ICS_OUTPUT_DIR, exist_ok=True)
     build_initial_listings()
     ensure_ical_enabled_field()
@@ -254,10 +260,9 @@ class ManualDatesUpdate(BaseModel):
         for pair in v:
             if len(pair) != 2:
                 raise ValueError('Cada rango debe tener [start, end]')
-            from datetime import datetime as dt
             try:
-                start = dt.strptime(pair[0], "%Y-%m-%d")
-                end = dt.strptime(pair[1], "%Y-%m-%d")
+                start = datetime.strptime(pair[0], "%Y-%m-%d")
+                end = datetime.strptime(pair[1], "%Y-%m-%d")
             except ValueError:
                 raise ValueError(f'Fecha invalida: {pair}')
             if start >= end:
@@ -269,9 +274,8 @@ class ManualDatesUpdate(BaseModel):
     def validate_start_date(cls, v):
         if v is None or v == "":
             return None
-        from datetime import datetime as dt
         try:
-            dt.strptime(v, "%Y-%m-%d")
+            datetime.strptime(v, "%Y-%m-%d")
         except ValueError:
             raise ValueError(f'start_date invalido: {v}. Formato esperado: YYYY-MM-DD')
         return v
@@ -495,14 +499,7 @@ async def api_get_listing_dates(listing_id: str):
     range_start = DATE_RANGE_START.strftime("%Y-%m-%d")
     range_end = DATE_RANGE_END.strftime("%Y-%m-%d")
 
-    from datetime import timedelta
-    all_dates = set()
-    cur = DATE_RANGE_START
-    while cur <= DATE_RANGE_END:
-        all_dates.add(cur.strftime("%Y-%m-%d"))
-        cur += timedelta(days=1)
-
-    available_dates = sorted(all_dates - blocked_dates)
+    available_dates = sorted(date_range_set(DATE_RANGE_START, DATE_RANGE_END) - blocked_dates)
 
     return {
         "range_start": range_start,
@@ -549,19 +546,16 @@ async def api_regenerate_ical(listing_id: str):
 
     available_dates = list(scraper_dates)
 
-    from allin import apply_manual_blocked_dates, apply_manual_available_override
     manual = [tuple(r) for r in (existing.get("manual_dates") or [])]
     available_dates = apply_manual_blocked_dates(available_dates, manual)
     overrides = [tuple(r) for r in (existing.get("available_override_dates") or [])]
     available_dates = apply_manual_available_override(available_dates, overrides)
 
-    # Aplicar start_date del listing si esta configurado
-    from datetime import datetime as dt
     raw_start = existing.get("start_date")
     ical_start = DATE_RANGE_START
     if raw_start:
         try:
-            candidate = dt.strptime(raw_start, "%Y-%m-%d")
+            candidate = datetime.strptime(raw_start, "%Y-%m-%d")
             if candidate > DATE_RANGE_START:
                 ical_start = candidate
         except ValueError:
@@ -572,16 +566,6 @@ async def api_regenerate_ical(listing_id: str):
     ts = update_timestamp(listing_id)
 
     return {"message": f"iCal regenerado para {listing_id}", "updated_at": ts}
-
-
-def _kill_chrome_zombies():
-    """Mata procesos Chrome/chromedriver zombies antes de iniciar un run."""
-    for name in ("chrome", "chromedriver"):
-        try:
-            subprocess.run(["pkill", "-9", "-f", name], capture_output=True)
-        except Exception:
-            pass
-    time.sleep(2)
 
 
 def _set_status(**kwargs):
@@ -599,10 +583,9 @@ def _run_update_single(listing_id):
             updating=True, current_listing=listing_id,
             progress=0, total=1, error=None,
         )
-    _kill_chrome_zombies()
+    kill_chrome_zombies(sleep_seconds=CHROME_KILL_SLEEP)
     try:
         _watchdog.arm(_TASK_TIMEOUT_SECONDS)
-        from updater import update_single_listing
         result = update_single_listing(listing_id)
         _set_status(progress=1, error=result.get("error"))
     except Exception as e:
@@ -623,19 +606,14 @@ def _run_update_all():
             updating=True, current_listing=None,
             progress=0, total=len(listings), error=None,
         )
-    _kill_chrome_zombies()
+    kill_chrome_zombies(sleep_seconds=CHROME_KILL_SLEEP)
     try:
         _watchdog.arm(_TASK_TIMEOUT_SECONDS)
-        from updater import update_single_listing
-        for i, listing in enumerate(listings):
-            lid = listing["listing_id"]
-            _set_status(current_listing=lid, progress=i + 1)
-            if not listing.get("ical_enabled", True):
-                continue
-            try:
-                update_single_listing(lid)
-            except Exception as e:
-                logger.error("Error updating %s: %s", lid, e)
+
+        def _progress(current, total, lid):
+            _set_status(current_listing=lid, progress=current)
+
+        update_all_listings(progress_callback=_progress)
     except Exception as e:
         logger.exception("Error in update_all: %s", e)
         _set_status(error="Error interno en actualizacion masiva")
@@ -678,7 +656,7 @@ def api_cancel_update():
             raise HTTPException(status_code=409, detail="No hay una actualizacion en curso")
         _update_status.update(updating=False, current_listing=None, progress=0, total=0, error="Cancelled by user")
     _watchdog.disarm()
-    _kill_chrome_zombies()
+    kill_chrome_zombies()
     logger.info("Update cancelled by user.")
     return {"message": "Update cancelled"}
 

@@ -19,9 +19,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 
-from config import AIRBNB_PROFILE_DIR
-
-REQUEST_DELAY = 4
+from config import AIRBNB_PROFILE_DIR, AIRBNB_BASE_URL, AIRBNB_REQUEST_DELAY, HEADLESS
 
 _driver = None
 _logged_in = False
@@ -48,7 +46,8 @@ def get_driver():
         options = Options()
         options.add_argument(f"--user-data-dir={profile_dir}")
         options.add_argument("--profile-directory=Default")
-        options.add_argument("--headless=new")
+        if HEADLESS:
+            options.add_argument("--headless=new")
         options.add_argument("--no-first-run")
         options.add_argument("--no-default-browser-check")
         options.add_argument("--disable-blink-features=AutomationControlled")
@@ -82,7 +81,7 @@ def _ensure_logged_in(driver):
     if _logged_in:
         return
 
-    driver.get("https://www.airbnb.com.co/hosting/listings")
+    driver.get(f"{AIRBNB_BASE_URL}/hosting/listings")
     time.sleep(4)
 
     if "/login" in driver.current_url:
@@ -106,7 +105,7 @@ def manual_login():
     options.add_argument("--disable-blink-features=AutomationControlled")
     # SIN headless — Chrome visible
     driver = webdriver.Chrome(options=options)
-    driver.get("https://www.airbnb.com.co/login")
+    driver.get(f"{AIRBNB_BASE_URL}/login")
     print("\n>>> Chrome abierto en la pagina de login de Airbnb.")
     print(">>> Haz login manualmente y luego presiona ENTER aqui...")
     input()
@@ -133,9 +132,9 @@ def fetch_listing_details(listing_id):
     driver = get_driver()
     _ensure_logged_in(driver)
 
-    url = f"https://www.airbnb.com.co/rooms/{listing_id}"
+    url = f"{AIRBNB_BASE_URL}/rooms/{listing_id}"
     driver.get(url)
-    time.sleep(REQUEST_DELAY)
+    time.sleep(AIRBNB_REQUEST_DELAY)
 
     # Detectar pagina de error 404
     if "Ups" in driver.page_source or "error: 404" in driver.page_source or "No hemos podido encontrar" in driver.page_source:
@@ -188,7 +187,8 @@ def fetch_listing_details(listing_id):
         price_match = re.search(r'[\$]\s*([\d,]+)', price_text)
         if price_match:
             result["price_per_night"] = int(price_match.group(1).replace(',', ''))
-    except Exception:
+    except Exception as e:
+        logger.debug("Price primary selector failed: %s", e)
         try:
             spans = driver.find_elements(By.CSS_SELECTOR, "span._tyxjp1")
             for span in spans:
@@ -196,8 +196,8 @@ def fetch_listing_details(listing_id):
                 if '$' in txt:
                     result["price_per_night"] = _extract_number(txt) or 0
                     break
-        except Exception as e:
-            logger.warning("Could not get price: %s", e)
+        except Exception as e2:
+            logger.warning("Could not get price: %s", e2)
 
     return result
 

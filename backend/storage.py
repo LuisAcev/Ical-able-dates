@@ -14,6 +14,10 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 from datetime import datetime, timezone
+from listings import (
+    PRIMARY_LISTINGS, PRIMARY_BEDROOM_FILTER,
+    AVAILABILITY_ONLY_LISTINGS, SECONDARY_BEDROOM_FILTER,
+)
 
 DATA_DIR = Path(__file__).parent / "data"
 LISTINGS_FILE = DATA_DIR / "listings_data.json"
@@ -152,85 +156,42 @@ def get_setting(key, default=None):
 
 # ================== MIGRATIONS ==================
 
-def ensure_manual_dates_field():
-    """Agrega manual_dates=[] a listings existentes que no tengan el campo."""
+def _ensure_fields(*field_defaults):
+    """Agrega campos con sus valores por defecto a listings que no los tengan."""
     with _storage_lock:
         listings = load_listings()
         changed = False
         for l in listings:
-            if "manual_dates" not in l:
-                l["manual_dates"] = []
-                changed = True
+            for key, default in field_defaults:
+                if key not in l:
+                    l[key] = default
+                    changed = True
         if changed:
             save_listings(listings)
+
+
+def ensure_manual_dates_field():
+    _ensure_fields(("manual_dates", []))
 
 
 def ensure_ical_enabled_field():
-    """Agrega ical_enabled=True a listings existentes que no tengan el campo."""
-    with _storage_lock:
-        listings = load_listings()
-        changed = False
-        for l in listings:
-            if "ical_enabled" not in l:
-                l["ical_enabled"] = True
-                changed = True
-        if changed:
-            save_listings(listings)
+    _ensure_fields(("ical_enabled", True))
 
 
 def ensure_address_state_fields():
-    """Agrega address='' y state='' a listings existentes que no tengan los campos."""
-    with _storage_lock:
-        listings = load_listings()
-        changed = False
-        for l in listings:
-            if "address" not in l:
-                l["address"] = ""
-                changed = True
-            if "state" not in l:
-                l["state"] = ""
-                changed = True
-        if changed:
-            save_listings(listings)
+    _ensure_fields(("address", ""), ("state", ""))
 
 
 def ensure_last_error_field():
-    """Agrega last_error=None a listings existentes que no tengan el campo."""
-    with _storage_lock:
-        listings = load_listings()
-        changed = False
-        for l in listings:
-            if "last_error" not in l:
-                l["last_error"] = None
-                changed = True
-        if changed:
-            save_listings(listings)
+    _ensure_fields(("last_error", None))
 
 
 def ensure_available_override_field():
-    """Agrega available_override_dates=[] a listings existentes que no tengan el campo."""
-    with _storage_lock:
-        listings = load_listings()
-        changed = False
-        for l in listings:
-            if "available_override_dates" not in l:
-                l["available_override_dates"] = []
-                changed = True
-        if changed:
-            save_listings(listings)
+    _ensure_fields(("available_override_dates", []))
 
 
 def ensure_start_date_field():
-    """Agrega start_date=None a listings existentes que no tengan el campo."""
-    with _storage_lock:
-        listings = load_listings()
-        changed = False
-        for l in listings:
-            if "start_date" not in l:
-                l["start_date"] = None
-                changed = True
-        if changed:
-            save_listings(listings)
+    _ensure_fields(("start_date", None))
 
 
 def build_initial_listings():
@@ -240,11 +201,6 @@ def build_initial_listings():
     """
     if LISTINGS_FILE.exists():
         return load_listings()
-
-    from listings import (
-        PRIMARY_LISTINGS, PRIMARY_BEDROOM_FILTER,
-        AVAILABILITY_ONLY_LISTINGS, SECONDARY_BEDROOM_FILTER,
-    )
 
     seen = {}
     for entry in PRIMARY_LISTINGS:

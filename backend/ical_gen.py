@@ -19,6 +19,14 @@ from config import ICS_OUTPUT_DIR
 logger = logging.getLogger(__name__)
 
 
+def date_range_set(range_start, range_end):
+    """Retorna un set de strings 'YYYY-MM-DD' para todos los dias en el rango."""
+    return {
+        (range_start + timedelta(days=i)).strftime("%Y-%m-%d")
+        for i in range((range_end - range_start).days + 1)
+    }
+
+
 def compute_blocked_ranges(available_dates, range_start, range_end):
     """
     Calcula rangos de fechas bloqueadas (no disponibles) dentro del rango dado.
@@ -172,15 +180,10 @@ def parse_ics_file(listing_id, output_dir=None):
         dtstart = None
         for line in f:
             line = line.strip()
-            if line.startswith("DTSTART;VALUE=DATE:") and ":" in line:
-                parts = line.split(":", 1)
-                if len(parts) == 2:
-                    dtstart = parts[1].strip()
-            elif line.startswith("DTEND;VALUE=DATE:") and dtstart and ":" in line:
-                parts = line.split(":", 1)
-                if len(parts) < 2:
-                    continue
-                dtend = parts[1].strip()
+            if line.startswith("DTSTART;VALUE=DATE:"):
+                dtstart = line.split(":", 1)[1].strip()
+            elif line.startswith("DTEND;VALUE=DATE:") and dtstart:
+                dtend = line.split(":", 1)[1].strip()
                 try:
                     start = datetime.strptime(dtstart, "%Y%m%d")
                     end = datetime.strptime(dtend, "%Y%m%d")

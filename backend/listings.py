@@ -53,7 +53,6 @@ PRIMARY_LISTINGS = [
     {"listing_id": 400284, "resort_code": "MGV"},
     {"listing_id": 400359, "resort_code": "MPD"},
     {"listing_id": 400389, "resort_code": "MHB"},
-    {"listing_id": 400413, "resort_code": "WMH"},
     {"listing_id": 400421, "resort_code": "SVV"},
     {"listing_id": 400571, "resort_code": "MCV"},
     {"listing_id": 400572, "resort_code": "MCV"},
@@ -156,7 +155,7 @@ ALL_UNIT_COUNTS = {
 # Rangos estilo check-in / check-out.
 # Fechas interpretadas como noches desde startDate hasta el dia anterior a endDate.
 MANUAL_EXTRA_AVAIL = {
-    400359: [
+    "400359": [
         ("2026-04-03", "2026-04-10"),
     ],
     "1348054833142358701": [

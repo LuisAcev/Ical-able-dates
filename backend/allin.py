@@ -25,13 +25,7 @@ from config import (
     SPEED_FACTOR, VACATION_EXCHANGE_TIMEOUT, VACATION_EXCHANGE_PAUSE,
     MORE_DATES_PAUSE, MAX_MORE_DATES_CLICKS,
     DATE_INPUT_PAUSE, DATE_KEY_DELAY, DATE_INPUT_RETRIES,
-    HEADLESS,
-)
-from ical_gen import generate_ics_for_listing
-from listings import (
-    PRIMARY_LISTINGS, PRIMARY_BEDROOM_FILTER,
-    SECONDARY_BEDROOM_FILTER, AVAILABILITY_ONLY_LISTINGS,
-    MANUAL_EXTRA_AVAIL,
+    HEADLESS, WAIT_RESULTS_TIMEOUT,
 )
 
 _BROWSER_ARGS = [
@@ -48,52 +42,6 @@ _BROWSER_ARGS = [
     "--blink-settings=imagesEnabled=false",
     "--js-flags=--max-old-space-size=192",
 ]
-
-# ========= ORDEN ESPECIAL: primero 0 cuartos, luego 2 cuartos, luego resto =========
-def sort_primary_listings_by_bedrooms(listings):
-    def sort_key(prop):
-        lid = prop["listing_id"]
-        beds = PRIMARY_BEDROOM_FILTER.get(lid)
-        if beds == "0":
-            group = 0
-        elif beds == "2":
-            group = 1
-        else:
-            group = 2
-        return (group, lid)
-    return sorted(listings, key=sort_key)
-
-
-def apply_manual_extra_availability(listing_id, available_dates, stored_manual_dates=None):
-    if stored_manual_dates:
-        ranges = stored_manual_dates
-    else:
-        ranges = MANUAL_EXTRA_AVAIL.get(str(listing_id)) or MANUAL_EXTRA_AVAIL.get(
-            int(listing_id) if str(listing_id).isdigit() else listing_id
-        )
-    if not ranges:
-        return available_dates
-
-    dates_set = set(available_dates)
-    before = len(dates_set)
-
-    for start_str, end_str in ranges:
-        try:
-            sd = datetime.strptime(start_str, "%Y-%m-%d")
-            ed = datetime.strptime(end_str, "%Y-%m-%d")
-        except ValueError:
-            continue
-        cur = sd
-        while cur < ed:
-            if DATE_RANGE_START <= cur <= DATE_RANGE_END:
-                dates_set.add(cur.strftime("%Y-%m-%d"))
-            cur += timedelta(days=1)
-
-    out = sorted(dates_set)
-    added = len(out) - before
-    logger.info("Manual extra availability for %s: +%d manual dates.", listing_id, added)
-    return out
-
 
 def apply_manual_blocked_dates(available_dates, manual_ranges):
     if not manual_ranges:
@@ -676,7 +624,7 @@ def parse_availability_from_block(block, listing_id, bedroom_filter):
 
 
 def wait_results_or_timeout(page, label=""):
-    deadline = time.time() + int(20 * SPEED_FACTOR)
+    deadline = time.time() + int(WAIT_RESULTS_TIMEOUT * SPEED_FACTOR)
     while time.time() < deadline:
         for frame in page.frames:
             try:
@@ -768,7 +716,7 @@ def collect_available_dates(resort_code, listing_id, bedroom_filter):
                 logger.info("[8] Exchange results loaded.")
 
             url_before_more = page_ref[0].url
-            _ = click_more_dates_until_exhausted(page_ref[0], resort_code, pause=MORE_DATES_PAUSE)
+            click_more_dates_until_exhausted(page_ref[0], resort_code, pause=MORE_DATES_PAUSE)
             # If "more dates" navigated to a new page, wait for it to fully render
             if page_ref[0].url != url_before_more:
                 logger.info("[8b] Navigated to %s after more-dates, waiting for results...", page_ref[0].url)
@@ -792,34 +740,3 @@ def collect_available_dates(resort_code, listing_id, bedroom_filter):
             pass
 
 
-# ================== MAIN ==================
-def main():
-    logger.info("Starting Interval World -> iCal scraper...")
-
-    ordered_primary = sort_primary_listings_by_bedrooms(PRIMARY_LISTINGS)
-    for prop in ordered_primary:
-        logger.info("Scraping %s (Listing ID: %s)...", prop["resort_code"], prop["listing_id"])
-        try:
-            available = collect_available_dates(prop["resort_code"], prop["listing_id"], PRIMARY_BEDROOM_FILTER)
-            available = apply_manual_extra_availability(prop["listing_id"], available)
-            logger.info("%d available dates found.", len(available))
-            generate_ics_for_listing(prop["listing_id"], available, DATE_RANGE_START, DATE_RANGE_END)
-        except Exception as e:
-            logger.exception("Error processing %s - %s: %s", prop["listing_id"], prop["resort_code"], e)
-
-    for prop in AVAILABILITY_ONLY_LISTINGS:
-        logger.info("Extra availability %s (Listing ID: %s)...", prop["resort_code"], prop["listing_id"])
-        try:
-            available = collect_available_dates(prop["resort_code"], prop["listing_id"], SECONDARY_BEDROOM_FILTER)
-            available = apply_manual_extra_availability(prop["listing_id"], available)
-            generate_ics_for_listing(prop["listing_id"], available, DATE_RANGE_START, DATE_RANGE_END)
-            if available:
-                logger.info("%d available dates.", len(available))
-            else:
-                logger.info("No availability.")
-        except Exception as e:
-            logger.exception("Error en %s (%s): %s", prop["listing_id"], prop["resort_code"], e)
-
-
-if __name__ == "__main__":
-    main()
