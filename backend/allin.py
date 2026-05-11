@@ -38,8 +38,11 @@ _BROWSER_ARGS = [
     "--no-sandbox",
     "--disable-setuid-sandbox",
     "--no-zygote",
+    "--single-process",  # Run everything in one OS process — prevents fork() EAGAIN in containers
     "--disable-dev-shm-usage",
     "--disable-gpu",
+    "--in-process-gpu",
+    "--disable-features=NetworkService,IsolateOrigins,site-per-process",
     "--ozone-platform=headless",
     "--disable-software-rasterizer",
     "--blink-settings=imagesEnabled=false",

@@ -84,6 +84,12 @@ def update_single_listing(listing_id):
             except Exception as e:
                 if attempt == 0:
                     logger.warning("Error scraping %s, retrying: %s", resort_code, e)
+                    for name in ("chrome", "chromedriver"):
+                        try:
+                            subprocess.run(["pkill", "-9", "-f", name], capture_output=True)
+                        except Exception:
+                            pass
+                    time.sleep(5)
                 else:
                     logger.error("Error scraping %s after 2 attempts: %s", resort_code, e)
                     failed_codes.append(resort_code)

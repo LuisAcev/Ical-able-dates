@@ -83,7 +83,14 @@ async def _auto_retry_error_loop():
                         break
                 lid = listing["listing_id"]
                 logger.info("Auto-retry: actualizando listing %s", lid)
-                await loop.run_in_executor(_scraper_executor, lambda l=lid: _run_update_single(l))
+                try:
+                    await asyncio.wait_for(
+                        loop.run_in_executor(_scraper_executor, lambda l=lid: _run_update_single(l)),
+                        timeout=float(_TASK_TIMEOUT_SECONDS),
+                    )
+                except asyncio.TimeoutError:
+                    logger.warning("Auto-retry: timeout para listing %s, liberando.", lid)
+                    _set_status(updating=False, current_listing=None, progress=0, total=0, error="Timeout de reintento")
                 await asyncio.sleep(30)
         except Exception as e:
             logger.exception("Auto-retry: error inesperado: %s", e)

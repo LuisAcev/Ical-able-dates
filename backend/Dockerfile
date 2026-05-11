@@ -19,6 +19,8 @@ if [ ! -f /app/data/listings_data.json ]; then\n\
   cp -rn /app/data_seed/. /app/data/\n\
 fi\n\
 mkdir -p /app/data/ics_files\n\
+pkill -9 -f chrome 2>/dev/null || true\n\
+pkill -9 -f chromedriver 2>/dev/null || true\n\
 exec python -m uvicorn ical_server:app --host 0.0.0.0 --port 8085\n' > /app/start.sh && \
     chmod +x /app/start.sh
 
