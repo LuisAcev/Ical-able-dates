@@ -19,7 +19,7 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-from config import DATE_RANGE_START, DATE_RANGE_END, CHROME_KILL_SLEEP
+from config import get_date_range_start, get_date_range_end, CHROME_KILL_SLEEP
 from allin import apply_manual_blocked_dates, apply_manual_available_override
 from ical_gen import generate_ics_for_listing
 from storage import load_listings, get_listing, update_timestamp, update_last_error, upsert_listing
@@ -89,15 +89,15 @@ def _scrape_in_process(resort_code, listing_id, bedroom_filter):
     return json.loads(stdout.decode())
 
 
-def _effective_start(listing):
+def _effective_start(listing, range_start):
     raw = listing.get("start_date")
     if not raw:
-        return DATE_RANGE_START
+        return range_start
     try:
         candidate = datetime.strptime(raw, "%Y-%m-%d")
-        return candidate if candidate > DATE_RANGE_START else DATE_RANGE_START
+        return candidate if candidate > range_start else range_start
     except ValueError:
-        return DATE_RANGE_START
+        return range_start
 
 
 def update_single_listing(listing_id):
@@ -176,11 +176,13 @@ def update_single_listing(listing_id):
     upsert_listing(fresh)
     listing = fresh
 
-    ical_start = _effective_start(listing)
+    range_start = get_date_range_start()
+    range_end = get_date_range_end(range_start)
+    ical_start = _effective_start(listing, range_start)
     available_list = sorted(d for d in all_available if d >= ical_start.strftime("%Y-%m-%d"))
     available_sorted = apply_manual_blocked_dates(available_list, [tuple(r) for r in (listing.get("manual_dates") or [])])
     available_sorted = apply_manual_available_override(available_sorted, [tuple(r) for r in (listing.get("available_override_dates") or [])])
-    generate_ics_for_listing(listing_id, available_sorted, DATE_RANGE_START, DATE_RANGE_END)
+    generate_ics_for_listing(listing_id, available_sorted, range_start, range_end)
     ts = update_timestamp(listing_id)
 
     return {

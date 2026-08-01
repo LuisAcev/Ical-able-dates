@@ -37,7 +37,7 @@ import uvicorn
 
 from config import (
     ICS_OUTPUT_DIR, ICAL_SERVER_HOST, ICAL_SERVER_PORT, CORS_ORIGINS,
-    ICAL_BASE_URL, DATE_RANGE_START, DATE_RANGE_END,
+    ICAL_BASE_URL, get_date_range_start, get_date_range_end,
     AUTO_UPDATE_HOURS, RETRY_ERROR_HOURS, CHROME_KILL_SLEEP,
 )
 from ical_gen import parse_ics_file, generate_ics_for_listing, date_range_set
@@ -496,10 +496,12 @@ async def api_get_listing_dates(listing_id: str):
         raise HTTPException(status_code=404, detail="Listing no encontrado")
 
     blocked_dates = parse_ics_file(listing_id)
-    range_start = DATE_RANGE_START.strftime("%Y-%m-%d")
-    range_end = DATE_RANGE_END.strftime("%Y-%m-%d")
+    range_start_dt = get_date_range_start()
+    range_end_dt = get_date_range_end(range_start_dt)
+    range_start = range_start_dt.strftime("%Y-%m-%d")
+    range_end = range_end_dt.strftime("%Y-%m-%d")
 
-    available_dates = sorted(date_range_set(DATE_RANGE_START, DATE_RANGE_END) - blocked_dates)
+    available_dates = sorted(date_range_set(range_start_dt, range_end_dt) - blocked_dates)
 
     return {
         "range_start": range_start,
@@ -551,18 +553,21 @@ async def api_regenerate_ical(listing_id: str):
     overrides = [tuple(r) for r in (existing.get("available_override_dates") or [])]
     available_dates = apply_manual_available_override(available_dates, overrides)
 
+    range_start = get_date_range_start()
+    range_end = get_date_range_end(range_start)
+
     raw_start = existing.get("start_date")
-    ical_start = DATE_RANGE_START
+    ical_start = range_start
     if raw_start:
         try:
             candidate = datetime.strptime(raw_start, "%Y-%m-%d")
-            if candidate > DATE_RANGE_START:
+            if candidate > range_start:
                 ical_start = candidate
         except ValueError:
             pass
 
     available_dates = [d for d in available_dates if d >= ical_start.strftime("%Y-%m-%d")]
-    generate_ics_for_listing(listing_id, available_dates, DATE_RANGE_START, DATE_RANGE_END)
+    generate_ics_for_listing(listing_id, available_dates, range_start, range_end)
     ts = update_timestamp(listing_id)
 
     return {"message": f"iCal regenerado para {listing_id}", "updated_at": ts}

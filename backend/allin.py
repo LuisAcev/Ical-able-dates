@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 from config import (
     INTERVAL_USERNAME, INTERVAL_PASSWORD,
-    DATE_RANGE_START, DATE_RANGE_END,
+    get_date_range_start, get_date_range_end,
     SPEED_FACTOR, VACATION_EXCHANGE_TIMEOUT, VACATION_EXCHANGE_PAUSE,
     MORE_DATES_PAUSE, MAX_MORE_DATES_CLICKS,
     DATE_INPUT_PAUSE, DATE_KEY_DELAY, DATE_INPUT_RETRIES,
@@ -534,6 +534,8 @@ def click_more_dates_until_exhausted(page, resort_code, pause=MORE_DATES_PAUSE, 
 
 def _collect_from_strong_rows(block, required_bedrooms):
     dates = set()
+    range_start = get_date_range_start()
+    range_end = get_date_range_end(range_start)
     strongs = block.query_selector_all("xpath=.//strong[contains(., ' - ')]")
     for st in strongs:
         txt = (st.text_content() or "").strip()
@@ -577,13 +579,15 @@ def _collect_from_strong_rows(block, required_bedrooms):
             continue
         for i in range((end_date - start_date).days):
             d = start_date + timedelta(days=i)
-            if DATE_RANGE_START <= d <= DATE_RANGE_END:
+            if range_start <= d <= range_end:
                 dates.add(d.strftime("%Y-%m-%d"))
     return dates
 
 
 def _collect_from_avail_divs(block, required_bedrooms):
     dates = set()
+    range_start = get_date_range_start()
+    range_end = get_date_range_end(range_start)
     rows = block.query_selector_all("div.avail_dates")
     for row in rows:
         date_range = (row.text_content() or "").strip()
@@ -610,7 +614,7 @@ def _collect_from_avail_divs(block, required_bedrooms):
             continue
         for i in range((end_date - start_date).days):
             d = start_date + timedelta(days=i)
-            if DATE_RANGE_START <= d <= DATE_RANGE_END:
+            if range_start <= d <= range_end:
                 dates.add(d.strftime("%Y-%m-%d"))
     return dates
 
@@ -647,6 +651,8 @@ def wait_results_or_timeout(page, label=""):
 # ---------- Recoleccion ----------
 
 def collect_available_dates(resort_code, listing_id, bedroom_filter):
+    range_start = get_date_range_start()
+    range_end = get_date_range_end(range_start)
     pw = sync_playwright().start()
     try:
         browser = pw.chromium.launch(headless=HEADLESS, args=_BROWSER_ARGS)
@@ -664,8 +670,8 @@ def collect_available_dates(resort_code, listing_id, bedroom_filter):
             logger.info("[3] Exchange frame: %s", "page" if frame == page_ref[0] else "iframe")
 
             fast_set_resort_code(frame, resort_code)
-            set_date_field(frame, "fromDate", DATE_RANGE_START.strftime("%m/%d/%Y"), fast=True)
-            set_date_field(frame, "toDate", DATE_RANGE_END.strftime("%m/%d/%Y"), fast=False)
+            set_date_field(frame, "fromDate", range_start.strftime("%m/%d/%Y"), fast=True)
+            set_date_field(frame, "toDate", range_end.strftime("%m/%d/%Y"), fast=False)
             select_guests_in_exchange_form(frame)
             logger.info("[4] Form filled. Clicking Continue...")
 
@@ -691,8 +697,8 @@ def collect_available_dates(resort_code, listing_id, bedroom_filter):
                 alt_frame = get_exchange_frame(page_ref[0]) or page_ref[0]
                 if get_exchange_frame(page_ref[0]):
                     fast_set_resort_code(alt_frame, resort_code)
-                    set_date_field(alt_frame, "fromDate", DATE_RANGE_START.strftime("%m/%d/%Y"), fast=True)
-                    set_date_field(alt_frame, "toDate", DATE_RANGE_END.strftime("%m/%d/%Y"), fast=False)
+                    set_date_field(alt_frame, "fromDate", range_start.strftime("%m/%d/%Y"), fast=True)
+                    set_date_field(alt_frame, "toDate", range_end.strftime("%m/%d/%Y"), fast=False)
                     select_guests_in_exchange_form(alt_frame)
                     logger.info("[5alt] Formulario llenado en %s. Buscando...", page_ref[0].url)
                     robust_continue_in_exchange_form(page_ref[0])

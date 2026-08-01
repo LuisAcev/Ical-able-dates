@@ -22,8 +22,17 @@ INTERVAL_PASSWORD = _env("INTERVAL_PASSWORD")
 
 # ================== DATES ==================
 DATE_RANGE_DAYS = int(_env("DATE_RANGE_DAYS", "365"))
-DATE_RANGE_START = datetime.today()
-DATE_RANGE_END = DATE_RANGE_START + timedelta(days=DATE_RANGE_DAYS)
+
+
+def get_date_range_start():
+    """Inicio del rango: siempre 'hoy', recalculado en cada llamada
+    (no se congela al momento en que arranco el proceso)."""
+    return datetime.today()
+
+
+def get_date_range_end(start=None):
+    """Fin del rango: DATE_RANGE_DAYS despues del inicio dado (o de hoy)."""
+    return (start or get_date_range_start()) + timedelta(days=DATE_RANGE_DAYS)
 
 # ================== SCRAPER ==================
 HEADLESS = _env("HEADLESS", "false").lower() == "true"
