@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # allin.py
-# Scraper de disponibilidad Interval World -> generacion iCalendar (.ics)
+# Scraper de disponibilidad Interval World (seccion Getaways) -> generacion iCalendar (.ics)
 #
 # 1) LISTA PRINCIPAL: busca disponibilidad completa en Interval.
 # 2) LISTA SECUNDARIA: busca disponibilidad adicional.
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 from config import (
     INTERVAL_USERNAME, INTERVAL_PASSWORD,
     get_date_range_start, get_date_range_end,
-    SPEED_FACTOR, VACATION_EXCHANGE_TIMEOUT, VACATION_EXCHANGE_PAUSE,
+    SPEED_FACTOR, GETAWAY_NAV_TIMEOUT,
     MORE_DATES_PAUSE, MAX_MORE_DATES_CLICKS,
     DATE_INPUT_PAUSE, DATE_KEY_DELAY, DATE_INPUT_RETRIES,
     HEADLESS, WAIT_RESULTS_TIMEOUT,
@@ -111,26 +111,79 @@ def _hard_clear(el):
     time.sleep(0.05)
 
 
-def get_exchange_frame(page):
-    """Returns the Page or Frame that contains the exchange form, or None."""
+_UP = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+_LO = "abcdefghijklmnopqrstuvwxyz"
+
+
+def _lower_xp(expr="."):
+    """Expresion XPath que normaliza y pasa a minusculas (XPath 1.0 no tiene lower-case())."""
+    return f"translate(normalize-space({expr}),'{_UP}','{_LO}')"
+
+
+# Pistas para ubicar los campos de fecha si el form de Getaways no usa los ids
+# conocidos. 'ident' se busca en id/name; 'labels' en el texto visible previo.
+_DATE_FIELD_HINTS = {
+    "fromDate": {
+        "ident": ("fromdate", "startdate", "earliest"),
+        "labels": ("earliest travel date", "check-in"),
+    },
+    "toDate": {
+        "ident": ("todate", "enddate", "latest"),
+        "labels": ("latest travel date", "check-out"),
+    },
+}
+
+
+def _resolve_date_input(ctx, field_id):
+    """Ubica el input de fecha: primero por id conocido, luego por id/name y etiqueta."""
+    el = ctx.query_selector(f"#{field_id}")
+    if el is not None:
+        return el
+
+    hints = _DATE_FIELD_HINTS[field_id]
+    for cand in ctx.query_selector_all("input"):
+        try:
+            ident = f"{cand.get_attribute('id') or ''} {cand.get_attribute('name') or ''}".lower()
+        except Exception:
+            continue
+        if any(h in ident.replace(" ", "") for h in hints["ident"]):
+            logger.warning("%s ubicado por id/name alterno: '%s'", field_id, ident.strip())
+            return cand
+
+    for text in hints["labels"]:
+        el = ctx.query_selector(
+            f"xpath=//*[contains({_lower_xp()},'{text}')]/following::input[1]"
+        )
+        if el is not None:
+            logger.warning("%s ubicado por etiqueta '%s'", field_id, text)
+            return el
+    return None
+
+
+def _has_search_form(ctx):
+    """True si el contexto contiene el buscador (campo de resort + fecha inicial)."""
     try:
-        if page.query_selector("#fromDate") and page.query_selector("#searchCriteria"):
-            return page
+        if ctx.query_selector("#fromDate") and ctx.query_selector("#searchCriteria"):
+            return True
+        return bool(_resolve_date_input(ctx, "fromDate") and _find_resort_code_input(ctx))
     except Exception:
-        pass
+        return False
+
+
+def get_search_frame(page):
+    """Returns the Page or Frame that contains the search form, or None."""
+    if _has_search_form(page):
+        return page
     for frame in page.frames:
         if frame == page.main_frame:
             continue
-        try:
-            if frame.query_selector("#fromDate") and frame.query_selector("#searchCriteria"):
-                return frame
-        except Exception:
-            pass
+        if _has_search_form(frame):
+            return frame
     return None
 
 
 def set_date_field(frame, field_id, date_str, fast=False):
-    el = frame.query_selector(f"#{field_id}")
+    el = _resolve_date_input(frame, field_id)
     if el is None:
         logger.warning("set_date_field: #%s not found", field_id)
         return
@@ -144,8 +197,7 @@ def set_date_field(frame, field_id, date_str, fast=False):
 
     if fast:
         frame.evaluate(
-            """([fid, v]) => {
-                var el = document.getElementById(fid);
+            """([el, v]) => {
                 el.removeAttribute('readonly');
                 el.removeAttribute('disabled');
                 el.focus();
@@ -155,7 +207,7 @@ def set_date_field(frame, field_id, date_str, fast=False):
                 el.dispatchEvent(new Event('input', {bubbles: true}));
                 el.dispatchEvent(new Event('change', {bubbles: true}));
             }""",
-            [field_id, date_str],
+            [el, date_str],
         )
         time.sleep(0.2)
         try:
@@ -179,13 +231,12 @@ def set_date_field(frame, field_id, date_str, fast=False):
         time.sleep(0.3)
 
     frame.evaluate(
-        """([fid, v]) => {
-            var el = document.getElementById(fid);
+        """([el, v]) => {
             el.value = v;
             el.dispatchEvent(new Event('input', {bubbles: true}));
             el.dispatchEvent(new Event('change', {bubbles: true}));
         }""",
-        [field_id, date_str],
+        [el, date_str],
     )
     time.sleep(0.2)
     try:
@@ -209,7 +260,7 @@ def dismiss_cookie_banner(page):
             pass
 
 
-def login_and_go_to_exchange(page):
+def login_and_go_home(page):
     page.goto("https://www.intervalworld.com/web/my/auth/loginPage", wait_until="domcontentloaded")
     dismiss_cookie_banner(page)
     page.wait_for_selector("[name='j_username']", timeout=25000)
@@ -226,13 +277,122 @@ def login_and_go_to_exchange(page):
     time.sleep(1.0 * SPEED_FACTOR)
 
 
-def fast_set_resort_code(frame, resort_code):
-    radio = frame.query_selector("input[name='searchType'][value='ResortSearch']")
-    if radio and not radio.is_checked():
-        _js_click(radio)
+_GETAWAYS_LINK_XP = f"xpath=//a[{_lower_xp()}='getaways']"
+_NAV_CLICK_TIMEOUT = 4000  # ms
 
-    field = frame.query_selector("#searchCriteria")
+
+def _wait_for_search_form(page, deadline):
+    while time.time() < deadline:
+        if get_search_frame(page) is not None:
+            return True
+        time.sleep(0.4)
+    return False
+
+
+def _log_form_candidates(page):
+    """Diagnostico: vuelca los inputs de cada frame cuando no se reconoce el buscador."""
+    for frame in page.frames:
+        try:
+            fields = frame.evaluate(
+                """() => Array.from(document.querySelectorAll('input, select'))
+                    .map(e => [e.tagName, e.id, e.name, e.type].join('|')).slice(0, 40)"""
+            )
+        except Exception:
+            continue
+        if fields:
+            logger.warning("[diag] campos en %s: %s", frame.url, fields)
+
+
+def go_to_getaways(page, timeout=GETAWAY_NAV_TIMEOUT):
+    """Abre el buscador de Getaways desde el menu principal.
+
+    El tab 'Getaways' despliega un submenu con 'Getaways' y 'ShortStay Getaways';
+    el primero lleva al buscador que usamos aqui. Se navega por el menu porque
+    Interval no expone una URL estable para esa pagina.
+    """
+    deadline = time.time() + timeout * SPEED_FACTOR
+    tabs = page.query_selector_all(_GETAWAYS_LINK_XP)
+    if tabs:
+        try:
+            tabs[0].hover(timeout=_NAV_CLICK_TIMEOUT)
+            time.sleep(0.6 * SPEED_FACTOR)
+        except Exception:
+            pass
+
+    # Tras el hover, el item del submenu queda de ultimo: se prueba primero.
+    candidates = list(reversed(page.query_selector_all(_GETAWAYS_LINK_XP)))
+    candidates += page.query_selector_all(
+        f"xpath=//a[contains({_lower_xp('@href')},'getaway')]"
+    )
+
+    for el in candidates:
+        # Timeout corto: los items del submenu pueden estar ocultos y el default
+        # de la pagina (60s) dejaria colgado cada intento.
+        try:
+            el.scroll_into_view_if_needed(timeout=_NAV_CLICK_TIMEOUT)
+            el.click(timeout=_NAV_CLICK_TIMEOUT)
+        except Exception:
+            try:
+                _js_click(el)
+            except Exception:
+                continue
+        if _wait_for_search_form(page, min(deadline, time.time() + 8 * SPEED_FACTOR)):
+            logger.info("Getaways abierto. url=%s", page.url)
+            return True
+        if time.time() >= deadline:
+            break
+
+    logger.error("No se pudo abrir Getaways desde el menu. url=%s", page.url)
+    return False
+
+
+def _find_resort_code_input(ctx):
+    """Input del codigo de resort: #searchCriteria, o el primer texto que no sea fecha."""
+    el = ctx.query_selector("#searchCriteria")
+    if el is not None:
+        return el
+    for cand in ctx.query_selector_all("input[type='text'], input:not([type])"):
+        try:
+            ident = f"{cand.get_attribute('id') or ''} {cand.get_attribute('name') or ''}".lower()
+        except Exception:
+            continue
+        if "date" in ident:
+            continue
+        logger.warning("Codigo de resort: usando input alterno '%s'", ident.strip())
+        return cand
+    return None
+
+
+def _check_resort_search_radio(frame):
+    """Marca la opcion de busqueda por codigo de resort ('Resort Name, Code')."""
+    radio = frame.query_selector("input[name='searchType'][value='ResortSearch']")
+    if radio is None:
+        for cand in frame.query_selector_all("input[type='radio']"):
+            try:
+                label = cand.evaluate(
+                    "el => ((el.closest('label') || el.parentElement || {}).textContent || '')"
+                )
+            except Exception:
+                continue
+            if "resort" in label.lower():
+                radio = cand
+                break
+    if radio is None:
+        logger.warning("Radio de busqueda por resort no encontrado")
+        return
+    try:
+        if not radio.is_checked():
+            _js_click(radio)
+    except Exception as e:
+        logger.warning("No se pudo marcar el radio de resort: %s", e)
+
+
+def fast_set_resort_code(frame, resort_code):
+    _check_resort_search_radio(frame)
+
+    field = _find_resort_code_input(frame)
     if not field:
+        logger.warning("Campo de codigo de resort no encontrado")
         return
 
     frame.evaluate(
@@ -346,27 +506,53 @@ def _open_guests_dropdown(frame):
     return _apply_guests_modal(frame)
 
 
-def select_guests_in_exchange_form(frame):
-    """Abre el widget de Guests y aplica 1 adulto en el modal."""
+def _set_guests_select(frame):
+    """Getaways trae los huespedes en un <select> ('2 Adults 0 Children' por defecto).
+    Elige la opcion de 1 adulto sin ninos. Retorna True si la aplico."""
+    for el in frame.query_selector_all("select"):
+        try:
+            options = frame.evaluate(
+                "el => Array.from(el.options).map(o => o.textContent.trim())", el
+            )
+        except Exception:
+            continue
+        if not any("adult" in (o or "").lower() for o in options):
+            continue
+        for i, text in enumerate(options):
+            low = (text or "").lower()
+            if re.search(r"\b1\s*adult", low) and not re.search(r"[1-9]\s*child", low):
+                el.select_option(index=i)
+                logger.info("Guests select: '%s'", text)
+                return True
+        logger.warning("Guests select sin opcion de 1 adulto: %s", options)
+        return False
+    return False
+
+
+def select_guests(frame):
+    """Deja 1 adulto: por el <select> de Getaways o, si no existe, por el modal."""
     try:
+        if _set_guests_select(frame):
+            return
         if not _open_guests_dropdown(frame):
             logger.warning("Guests: modal did not open after all strategies")
     except Exception as e:
         logger.warning("Could not select guests: %s", e)
 
 
-def robust_continue_in_exchange_form(page, max_retries=4):
+def robust_continue_search_form(page, max_retries=4):
     def get_btn(frame):
         btn = frame.query_selector("#exchange_form_continue_btn")
         if btn:
             return btn
         # input submit variants
-        for val in ["Continue", "continue", "Search", "search", "Continuar", "Buscar"]:
+        for val in ["Find Getaway", "Find Getaways", "Continue", "continue",
+                    "Search", "search", "Continuar", "Buscar"]:
             b = frame.query_selector(f"input[type='submit'][value='{val}']")
             if b:
                 return b
         # button element variants
-        for txt in ["Continue", "Search", "Continuar", "Buscar"]:
+        for txt in ["Find Getaway", "Continue", "Search", "Continuar", "Buscar"]:
             b = frame.query_selector(f"button:has-text('{txt}')")
             if b:
                 return b
@@ -374,7 +560,7 @@ def robust_continue_in_exchange_form(page, max_retries=4):
 
     for attempt in range(1, max_retries + 1):
         _apply_guests_modal(page, timeout=800)
-        frame = get_exchange_frame(page)
+        frame = get_search_frame(page)
         if frame is None:
             return True
         prev_url = page.url
@@ -404,69 +590,12 @@ def robust_continue_in_exchange_form(page, max_retries=4):
         wait_until = time.time() + int(8 * SPEED_FACTOR) + attempt * 2
         while time.time() < wait_until:
             cur = page.url
-            if cur != prev_url and get_exchange_frame(page) is None:
+            if cur != prev_url and get_search_frame(page) is None:
                 time.sleep(0.6 * SPEED_FACTOR)
                 return True
             time.sleep(0.3)
         logger.info("Continue attempt %d timeout. url=%s", attempt, page.url)
         time.sleep(0.5 * SPEED_FACTOR)
-    return False
-
-
-def click_any_unredeemed_vacation_exchange(page_ref, timeout=VACATION_EXCHANGE_TIMEOUT):
-    page = page_ref[0]
-    context = page.context
-    end = time.time() + timeout * SPEED_FACTOR
-    before_url = page.url
-    before_page_ids = {id(p) for p in context.pages}
-
-    xp = (
-        "xpath=//tr[contains(@class,'unit_info')]"
-        "[.//a[contains(@class,'pop_up') and contains("
-        "translate(normalize-space(.),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz')"
-        ",'unredeemed deposit')]]"
-    )
-
-    while time.time() < end:
-        rows = page.query_selector_all(xp)
-        if not rows:
-            page.evaluate("window.scrollBy(0, 600)")
-            time.sleep(0.3 * SPEED_FACTOR)
-            continue
-        for row in rows:
-            btn = None
-            for sel in [
-                "xpath=.//input[@type='image' and contains(@src,'vexchange')]",
-                "xpath=.//a[contains(translate(normalize-space(.),"
-                "'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'vacation exchange')]",
-                "xpath=.//button[contains(translate(normalize-space(.),"
-                "'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'vacation exchange')]",
-            ]:
-                els = row.query_selector_all(sel)
-                if els:
-                    btn = els[0]
-                    break
-            if not btn:
-                continue
-            btn.scroll_into_view_if_needed()
-            try:
-                btn.click()
-            except Exception:
-                _js_click(btn)
-            time.sleep(VACATION_EXCHANGE_PAUSE * SPEED_FACTOR)
-            new_pages = [p for p in context.pages if id(p) not in before_page_ids]
-            if new_pages:
-                new_page = new_pages[0]
-                try:
-                    new_page.wait_for_load_state("domcontentloaded", timeout=15000)
-                except Exception:
-                    pass
-                page_ref[0] = new_page
-                return True
-            if page.url != before_url:
-                return True
-        page.evaluate("window.scrollBy(0, 800)")
-        time.sleep(0.4 * SPEED_FACTOR)
     return False
 
 
@@ -663,75 +792,44 @@ def collect_available_dates(resort_code, listing_id, bedroom_filter):
         page_ref = [page]
         try:
             logger.info("[1] Logging in...")
-            login_and_go_to_exchange(page_ref[0])
+            login_and_go_home(page_ref[0])
             logger.info("[2] Logged in. url=%s", page_ref[0].url)
 
-            frame = get_exchange_frame(page_ref[0]) or page_ref[0]
-            logger.info("[3] Exchange frame: %s", "page" if frame == page_ref[0] else "iframe")
+            if not go_to_getaways(page_ref[0]):
+                _log_form_candidates(page_ref[0])
+                raise Exception(
+                    "No se pudo abrir el buscador de Getaways desde el menu principal"
+                )
+
+            frame = get_search_frame(page_ref[0]) or page_ref[0]
+            logger.info("[3] Getaways form: %s", "page" if frame == page_ref[0] else "iframe")
 
             fast_set_resort_code(frame, resort_code)
             set_date_field(frame, "fromDate", range_start.strftime("%m/%d/%Y"), fast=True)
             set_date_field(frame, "toDate", range_end.strftime("%m/%d/%Y"), fast=False)
-            select_guests_in_exchange_form(frame)
-            logger.info("[4] Form filled. Clicking Continue...")
+            select_guests(frame)
+            logger.info("[4] Form filled. Clicking Find Getaway...")
 
-            if not robust_continue_in_exchange_form(page_ref[0]):
-                # Ruta alterna: el banco de depósitos no tiene semanas para este resort.
-                # Volver a ?a=0 limpio y usar click_any_unredeemed_vacation_exchange — la misma
-                # función que funciona en ?a=204 — para clickear el botón Vacation Exchange
-                # de la sección My Units, que lleva a ?a=240 con disponibilidad directa.
-                logger.info("[5] Continue falló. Intentando ruta alterna via My Units...")
-                page_ref[0].goto("https://www.intervalworld.com/web/cs?a=0", wait_until="domcontentloaded")
-                time.sleep(2.0 * SPEED_FACTOR)
-
-                if not click_any_unredeemed_vacation_exchange(page_ref, timeout=VACATION_EXCHANGE_TIMEOUT):
-                    raise Exception(
-                        "Sin semanas disponibles para intercambio — "
-                        "verificar depósitos activos en Interval World"
-                    )
-
-                logger.info("[5alt] Vacation Exchange clickeado. url=%s", page_ref[0].url)
-                time.sleep(1.5 * SPEED_FACTOR)
-
-                # En ?a=240: llenar resort code específico y buscar disponibilidad directa
-                alt_frame = get_exchange_frame(page_ref[0]) or page_ref[0]
-                if get_exchange_frame(page_ref[0]):
-                    fast_set_resort_code(alt_frame, resort_code)
-                    set_date_field(alt_frame, "fromDate", range_start.strftime("%m/%d/%Y"), fast=True)
-                    set_date_field(alt_frame, "toDate", range_end.strftime("%m/%d/%Y"), fast=False)
-                    select_guests_in_exchange_form(alt_frame)
-                    logger.info("[5alt] Formulario llenado en %s. Buscando...", page_ref[0].url)
-                    robust_continue_in_exchange_form(page_ref[0])
-                    wait_results_or_timeout(page_ref[0], "after-alt-search")
-                else:
-                    logger.warning("[5alt] No hay exchange frame en %s", page_ref[0].url)
+            if not robust_continue_search_form(page_ref[0]):
+                logger.warning("[5] No se pudo enviar el formulario. url=%s", page_ref[0].url)
             else:
-                logger.info("[5] Continue OK. url=%s", page_ref[0].url)
+                logger.info("[5] Busqueda enviada. url=%s", page_ref[0].url)
 
-                if not wait_results_or_timeout(page_ref[0], "after-continue"):
-                    return []
-                logger.info("[6] Results page loaded. url=%s", page_ref[0].url)
-
-                if not click_any_unredeemed_vacation_exchange(page_ref, timeout=VACATION_EXCHANGE_TIMEOUT):
-                    logger.error("[7] Could not click Vacation Exchange. url=%s", page_ref[0].url)
-                    return []
-                logger.info("[7] Vacation Exchange clicked. url=%s", page_ref[0].url)
-
-                if not wait_results_or_timeout(page_ref[0], "after-vexchange"):
-                    return []
-                logger.info("[8] Exchange results loaded.")
+            if not wait_results_or_timeout(page_ref[0], "after-find-getaway"):
+                return []
+            logger.info("[6] Getaway results loaded. url=%s", page_ref[0].url)
 
             url_before_more = page_ref[0].url
             click_more_dates_until_exhausted(page_ref[0], resort_code, pause=MORE_DATES_PAUSE)
             # If "more dates" navigated to a new page, wait for it to fully render
             if page_ref[0].url != url_before_more:
-                logger.info("[8b] Navigated to %s after more-dates, waiting for results...", page_ref[0].url)
+                logger.info("[7] Navigated to %s after more-dates, waiting for results...", page_ref[0].url)
                 wait_results_or_timeout(page_ref[0], "after-more-dates")
             block = find_resort_block_by_code(page_ref[0], resort_code)
             if not block:
-                logger.error("[9] Resort block not found: %s. url=%s", resort_code, page_ref[0].url)
+                logger.error("[8] Resort block not found: %s. url=%s", resort_code, page_ref[0].url)
                 return []
-            logger.info("[9] Resort block %s found. Parsing...", resort_code)
+            logger.info("[8] Resort block %s found. Parsing...", resort_code)
             available_dates = parse_availability_from_block(block, listing_id, bedroom_filter)
             return list(sorted(set(available_dates)))
         finally:

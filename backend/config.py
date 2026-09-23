@@ -21,7 +21,7 @@ INTERVAL_USERNAME = _env("INTERVAL_USERNAME")
 INTERVAL_PASSWORD = _env("INTERVAL_PASSWORD")
 
 # ================== DATES ==================
-DATE_RANGE_DAYS = int(_env("DATE_RANGE_DAYS", "365"))
+DATE_RANGE_DAYS = int(_env("DATE_RANGE_DAYS", "90"))
 
 
 def get_date_range_start():
@@ -39,8 +39,7 @@ HEADLESS = _env("HEADLESS", "false").lower() == "true"
 
 # ================== SCRAPER SPEED KNOBS ==================
 SPEED_FACTOR = float(_env("SPEED_FACTOR", "0.9"))
-VACATION_EXCHANGE_TIMEOUT = int(_env("VACATION_EXCHANGE_TIMEOUT", "20"))
-VACATION_EXCHANGE_PAUSE = float(_env("VACATION_EXCHANGE_PAUSE", "0.5"))
+GETAWAY_NAV_TIMEOUT = int(_env("GETAWAY_NAV_TIMEOUT", "20"))
 MORE_DATES_PAUSE = float(_env("MORE_DATES_PAUSE", "0.8"))
 MAX_MORE_DATES_CLICKS = int(_env("MAX_MORE_DATES_CLICKS", "8"))
 DATE_INPUT_PAUSE = float(_env("DATE_INPUT_PAUSE", "0.4"))
